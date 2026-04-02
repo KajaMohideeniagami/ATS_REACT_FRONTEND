@@ -1,12 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowLeft,
   Check,
   ChevronDown,
   Columns3,
   Download,
   FileSpreadsheet,
+  GripVertical,
   RefreshCw,
   RotateCcw,
   Search,
@@ -18,6 +17,7 @@ import '../../../global.css';
 const STATUS_OPTIONS = ['All', 'Open', 'Closed', 'Hold', 'Lost'];
 const TYPE_OPTIONS = ['All', 'Offshore', 'Onsite', 'NearShore'];
 const PAGE_SIZE = 10;
+const COLUMN_PREFS_KEY = 'ats_demand_report_column_prefs';
 
 const getValue = (row, keys) => {
   for (const key of keys) {
@@ -119,8 +119,28 @@ const renderCellValue = (columnKey, value) => {
 
 const toCsvSafe = (value) => `"${formatCell(value).replace(/"/g, '""')}"`;
 
+const readColumnPrefs = () => {
+  if (typeof window === 'undefined') {
+    return { order: [], hidden: [] };
+  }
+
+  try {
+    const rawPrefs = window.localStorage.getItem(COLUMN_PREFS_KEY);
+    if (!rawPrefs) {
+      return { order: [], hidden: [] };
+    }
+
+    const parsedPrefs = JSON.parse(rawPrefs);
+    return {
+      order: Array.isArray(parsedPrefs?.order) ? parsedPrefs.order : [],
+      hidden: Array.isArray(parsedPrefs?.hidden) ? parsedPrefs.hidden : [],
+    };
+  } catch {
+    return { order: [], hidden: [] };
+  }
+};
+
 const DemandReportPage = () => {
-  const navigate = useNavigate();
   const actionsRef = useRef(null);
 
   const [customers, setCustomers] = useState([]);
@@ -135,7 +155,9 @@ const DemandReportPage = () => {
   const [page, setPage] = useState(1);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [columnsOpen, setColumnsOpen] = useState(false);
-  const [visibleColumns, setVisibleColumns] = useState([]);
+  const [draggedColumn, setDraggedColumn] = useState(null);
+  const [columnOrder, setColumnOrder] = useState(() => readColumnPrefs().order);
+  const [hiddenColumns, setHiddenColumns] = useState(() => readColumnPrefs().hidden);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -169,7 +191,7 @@ const DemandReportPage = () => {
     loadCustomers();
   }, []);
 
-  const loadRows = async () => {
+  const loadRows = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -188,7 +210,7 @@ const DemandReportPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCustomer, selectedStatus, selectedType]);
 
   useEffect(() => {
     setPage(1);
@@ -196,22 +218,28 @@ const DemandReportPage = () => {
 
   useEffect(() => {
     loadRows();
-  }, [selectedCustomer, selectedStatus, selectedType]);
+  }, [loadRows]);
 
-  const filteredRows = rows.filter((row) => matchesSearch(row, searchTerm));
+  const filteredRows = useMemo(
+    () => rows.filter((row) => matchesSearch(row, searchTerm)),
+    [rows, searchTerm]
+  );
 
-  const columns = rows.reduce((allColumns, row) => {
-    Object.keys(row || {}).forEach((key) => {
-      if (!allColumns.includes(key)) {
-        allColumns.push(key);
-      }
-    });
+  const columns = useMemo(
+    () => rows.reduce((allColumns, row) => {
+      Object.keys(row || {}).forEach((key) => {
+        if (!allColumns.includes(key)) {
+          allColumns.push(key);
+        }
+      });
 
-    return allColumns;
-  }, []);
+      return allColumns;
+    }, []),
+    [rows]
+  );
 
   useEffect(() => {
-    setVisibleColumns((previousColumns) => {
+    setColumnOrder((previousColumns) => {
       if (columns.length === 0) return [];
       if (previousColumns.length === 0) return columns;
 
@@ -220,9 +248,25 @@ const DemandReportPage = () => {
 
       return [...retainedColumns, ...newColumns];
     });
-  }, [columns.join('|')]);
+  }, [columns]);
 
-  const activeColumns = visibleColumns.length > 0 ? visibleColumns : columns;
+  useEffect(() => {
+    setHiddenColumns((previousHiddenColumns) => previousHiddenColumns.filter((column) => columns.includes(column)));
+  }, [columns]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    window.localStorage.setItem(
+      COLUMN_PREFS_KEY,
+      JSON.stringify({
+        order: columnOrder,
+        hidden: hiddenColumns,
+      })
+    );
+  }, [columnOrder, hiddenColumns]);
+
+  const activeColumns = columnOrder.filter((column) => !hiddenColumns.includes(column));
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -238,19 +282,44 @@ const DemandReportPage = () => {
   };
 
   const toggleColumn = (column) => {
-    setVisibleColumns((previousColumns) => {
-      if (previousColumns.includes(column)) {
-        if (previousColumns.length === 1) return previousColumns;
-        return previousColumns.filter((item) => item !== column);
+    setHiddenColumns((previousHiddenColumns) => {
+      const activeColumnCount = columnOrder.filter((item) => !previousHiddenColumns.includes(item)).length;
+
+      if (!previousHiddenColumns.includes(column) && activeColumnCount === 1) {
+        return previousHiddenColumns;
       }
 
-      return [...previousColumns, column];
+      if (previousHiddenColumns.includes(column)) {
+        return previousHiddenColumns.filter((item) => item !== column);
+      }
+
+      return [...previousHiddenColumns, column];
     });
   };
 
   const showAllColumns = () => {
-    setVisibleColumns(columns);
+    setHiddenColumns([]);
     toast.success('All columns are now visible.');
+  };
+
+  const moveColumn = (sourceColumn, targetColumn) => {
+    if (!sourceColumn || !targetColumn || sourceColumn === targetColumn) return;
+
+    setColumnOrder((previousColumns) => {
+      const nextColumns = [...previousColumns];
+      const sourceIndex = nextColumns.indexOf(sourceColumn);
+      const targetIndex = nextColumns.indexOf(targetColumn);
+
+      if (sourceIndex === -1 || targetIndex === -1) {
+        return previousColumns;
+      }
+
+      const [movedColumn] = nextColumns.splice(sourceIndex, 1);
+      nextColumns.splice(targetIndex, 0, movedColumn);
+      return nextColumns;
+    });
+
+    toast.success('Column order saved.');
   };
 
   const downloadCsv = () => {
@@ -284,7 +353,8 @@ const DemandReportPage = () => {
 
   const handleResetView = () => {
     resetFilters();
-    setVisibleColumns(columns);
+    setColumnOrder(columns);
+    setHiddenColumns([]);
     setActionsOpen(false);
     setColumnsOpen(false);
     toast.success('Report view reset.');
@@ -311,9 +381,6 @@ const DemandReportPage = () => {
       <div className="demand-report-shell">
         <div className="demand-report-header">
           <div className="demand-report-title-wrap">
-            <button className="btn-icon" onClick={() => navigate(-1)}>
-              <ArrowLeft size={18} /> Back
-            </button>
             <div>
               <div className="demand-report-kicker">Analytics</div>
               <h1 className="ats-heading-1">Demand Report</h1>
@@ -420,15 +487,36 @@ const DemandReportPage = () => {
                       <button className="action-submenu-item strong" onClick={showAllColumns}>
                         Show All Columns
                       </button>
-                      {columns.map((column) => {
-                        const checked = activeColumns.includes(column);
+                      <div className="action-submenu-hint">Drag the grip icon to reorder columns.</div>
+                      {columnOrder.map((column) => {
+                        const checked = !hiddenColumns.includes(column);
 
                         return (
                           <button
                             key={column}
                             className={`action-submenu-item ${checked ? 'checked' : ''}`}
+                            onDragOver={(event) => event.preventDefault()}
+                            onDrop={() => {
+                              moveColumn(draggedColumn, column);
+                              setDraggedColumn(null);
+                            }}
                             onClick={() => toggleColumn(column)}
                           >
+                            <span
+                              className="action-submenu-drag"
+                              draggable
+                              onClick={(event) => event.stopPropagation()}
+                              onDragStart={(event) => {
+                                event.stopPropagation();
+                                setDraggedColumn(column);
+                              }}
+                              onDragEnd={(event) => {
+                                event.stopPropagation();
+                                setDraggedColumn(null);
+                              }}
+                            >
+                              <GripVertical size={14} />
+                            </span>
                             <span className="action-submenu-check">{checked ? <Check size={14} /> : null}</span>
                             <span>{formatHeader(column)}</span>
                           </button>
@@ -697,7 +785,7 @@ const DemandReportPage = () => {
         }
 
         .action-submenu {
-          max-height: 280px;
+          max-height: 320px;
           overflow: auto;
           background: #f8fbff;
           border-bottom: 1px solid var(--ats-border-light);
@@ -729,6 +817,24 @@ const DemandReportPage = () => {
 
         .action-submenu-item.checked {
           font-weight: 600;
+        }
+
+        .action-submenu-hint {
+          padding: 10px 14px 8px;
+          color: var(--ats-secondary);
+          font-size: 12px;
+          border-bottom: 1px solid var(--ats-border-light);
+          background: rgba(37, 99, 235, 0.03);
+        }
+
+        .action-submenu-drag {
+          width: 16px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--ats-secondary);
+          flex-shrink: 0;
+          cursor: grab;
         }
 
         .action-submenu-check {

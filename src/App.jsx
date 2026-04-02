@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import {
   BarChart3,
@@ -15,8 +15,8 @@ import CustomerDetail from './components/pages/Customer/CustomerDetail';
 import CustomerCreate from './components/pages/Customer/CustomerCreate';
 import LoginPage from './components/pages/Auth/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
-import { isLoggedIn, clearSession } from './services/authService';
-import ProfileStatusModal  from './components/pages/ProfileStatus/ProfileStatus';
+import { isLoggedIn, clearSession, getSession } from './services/authService';
+import ProfileStatusModal from './components/pages/ProfileStatus/ProfileStatus';
 import DemandReportPage from './components/pages/DemandReport/DemandReportPage';
 import ToastContainer from './components/Toast';
 import './global.css';
@@ -35,6 +35,9 @@ const NAV_ITEMS = [
 const AppShell = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const sessionUser = getSession();
+  const headerUserName = sessionUser?.username || sessionUser?.full_name || sessionUser?.email || 'Workspace User';
 
   const handleLogout = () => {
     clearSession();
@@ -47,11 +50,16 @@ const AppShell = ({ children }) => {
   };
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${sidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}>
       <header className="app-header">
         <div className="app-header-inner">
           <div className="app-header-brand">
-            <button className="app-header-menu" type="button" aria-label="Navigation">
+            <button
+              className="app-header-menu"
+              type="button"
+              aria-label={sidebarOpen ? 'Collapse navigation' : 'Expand navigation'}
+              onClick={() => setSidebarOpen((previous) => !previous)}
+            >
               <Menu size={20} />
             </button>
             <span className="app-header-title">Iagami - Applicant Tracking Software (ATS)</span>
@@ -59,7 +67,7 @@ const AppShell = ({ children }) => {
 
           {isLoggedIn() && (
             <div className="app-header-actions">
-              <span className="app-header-user">Workspace User</span>
+              <span className="app-header-user">{headerUserName}</span>
               <button className="app-header-logout" onClick={handleLogout}>
                 <LogOut size={14} />
                 Logout
@@ -70,7 +78,7 @@ const AppShell = ({ children }) => {
       </header>
 
       <div className="app-layout">
-        <aside className="app-sidebar">
+        <aside className={`app-sidebar ${sidebarOpen ? 'open' : 'collapsed'}`}>
           <nav className="app-sidebar-nav">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
@@ -83,9 +91,10 @@ const AppShell = ({ children }) => {
                   className={`app-sidebar-link ${active ? 'active' : ''} ${item.path ? '' : 'disabled'}`}
                   onClick={() => handleNavClick(item)}
                   disabled={!item.path}
+                  title={item.label}
                 >
                   <Icon size={18} />
-                  <span>{item.label}</span>
+                  <span className="app-sidebar-label">{item.label}</span>
                 </button>
               );
             })}
@@ -160,10 +169,6 @@ const App = () => {
         />
 
         <Route path="*" element={<Navigate to="/" replace />} />
-
-        <Route path="/customers/:id/profile-status" element={<ProfileStatusModal  />} />
-
-
       </Routes>
 
       <ToastContainer />
@@ -259,19 +264,30 @@ const App = () => {
         .app-layout {
           display: flex;
           min-height: calc(100vh - 58px);
+          overflow: hidden;
         }
 
         .app-sidebar {
-          width: 298px;
+          width: 219px;
           flex-shrink: 0;
           background: #2f353a;
           border-right: 1px solid rgba(255,255,255,0.06);
+          transition: width 0.22s ease, transform 0.22s ease;
+          overflow: hidden;
+          height: calc(100vh - 58px);
+          position: sticky;
+          top: 58px;
         }
 
         .app-sidebar-nav {
           display: flex;
           flex-direction: column;
           padding: 0;
+          overflow: hidden;
+        }
+
+        .app-sidebar.collapsed {
+          width: 78px;
         }
 
         .app-sidebar-link {
@@ -292,6 +308,24 @@ const App = () => {
           transition: background 0.18s ease, border-left-color 0.18s ease;
         }
 
+        .app-sidebar-label {
+          white-space: nowrap;
+          opacity: 1;
+          transition: opacity 0.18s ease;
+        }
+
+        .sidebar-collapsed .app-sidebar-link {
+          justify-content: center;
+          padding-left: 10px;
+          padding-right: 10px;
+        }
+
+        .sidebar-collapsed .app-sidebar-label {
+          opacity: 0;
+          width: 0;
+          overflow: hidden;
+        }
+
         .app-sidebar-link:hover:not(.disabled) {
           background: #383f45;
         }
@@ -310,6 +344,8 @@ const App = () => {
         .app-content {
           flex: 1;
           min-width: 0;
+          height: calc(100vh - 58px);
+          overflow-y: auto;
         }
 
         @media (max-width: 980px) {
@@ -319,6 +355,11 @@ const App = () => {
 
           .app-sidebar {
             width: 100%;
+            max-height: 480px;
+            border-right: none;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            height: auto;
+            position: static;
           }
 
           .app-sidebar-nav {
@@ -328,11 +369,33 @@ const App = () => {
           .app-sidebar-link {
             white-space: nowrap;
           }
+
+          .app-sidebar.collapsed {
+            width: 100%;
+            max-height: 0;
+            border-bottom: none;
+          }
+
+          .sidebar-collapsed .app-sidebar-link {
+            justify-content: flex-start;
+            padding-left: 14px;
+            padding-right: 14px;
+          }
+
+          .sidebar-collapsed .app-sidebar-label {
+            opacity: 1;
+            width: auto;
+          }
+
+          .app-content {
+            height: auto;
+            overflow-y: visible;
+          }
         }
 
         @media (max-width: 640px) {
           .app-header-inner {
-            padding: 10px 12px;
+            padding: 10px 0px;
           }
 
           .app-header-title {
