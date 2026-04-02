@@ -11,6 +11,7 @@ import "../../../global.css";
 import AddContactModal from './AddContactModal';
 import AddDemandModal from './AddDemandModal';
 import AddProfileModal from './AddProfileModal';
+import ProfileStatusModal from '../ProfileStatus/ProfileStatus';
 const TABS = [
   { key: "all",      label: "Show All" },
   { key: "details",  label: "Customer Details" },
@@ -68,6 +69,7 @@ const CustomerDetail = () => {
   const [showAddProfile, setShowAddProfile] = useState(false);
   const [selectedDemandId, setSelectedDemandId] = useState(null);
   const [selectedDemandInfo, setSelectedDemandInfo] = useState(null);
+  const [showProfileStatus, setShowProfileStatus] = useState(false);
   const actionsRef = useRef(null);
 
   const [demandsPage,  setDemandsPage]  = useState(1);
@@ -122,7 +124,7 @@ const CustomerDetail = () => {
     { label: "Add Contact",icon: <UserPlus  size={14} />, action: () => { setShowActions(false); setShowAddContact(true); } },
     { label: "Add Demand", icon: <Briefcase size={14} />, action: () => { setShowActions(false); setShowAddDemand(true); } },
     { label: "Add Profile", icon: <User size={14} />, action: () => { setShowActions(false); setSelectedDemandId(null); setSelectedDemandInfo(null); setShowAddProfile(true); } },
-{ label: "Profile Status", icon: <Activity size={14} />, action: () => { setShowActions(false); navigate(`/customers/${id}/profile-status`); } },
+{ label: "Profile Status", icon: <Activity size={14} />, action: () => { setShowActions(false); setShowProfileStatus(true); } },
     { label: "Send Email To Vendors", icon: <Mail size={14} />, action: () => { setShowActions(false); } },
   ];
 
@@ -522,20 +524,22 @@ const CustomerDetail = () => {
       onClose={() => setShowAddDemand(false)}
       customerId={id}
       onSuccess={loadData}
-     />
+      />
 
-<AddProfileModal
-  isOpen={showAddProfile}
-  onClose={() => setShowAddProfile(false)}
-  onSuccess={loadData}
-  demandId={selectedDemandId}
-  demandType={selectedDemandInfo?.demand_type}
-  demands={demands}
-  customerId={id}
-/>
-
-
-
+      <AddProfileModal
+        isOpen={showAddProfile}
+        onClose={() => setShowAddProfile(false)}
+        onSuccess={loadData}
+        demandId={selectedDemandId}
+        demandType={selectedDemandInfo?.demand_type}
+        demands={demands}
+        customerId={id}
+      />
+      <ProfileStatusModal
+        customerId={id}
+        isOpen={showProfileStatus}
+        onClose={() => setShowProfileStatus(false)}
+      />
       <style>{`
         .detail-page {
           min-height: 100vh;

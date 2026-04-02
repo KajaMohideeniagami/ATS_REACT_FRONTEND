@@ -1,70 +1,136 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { X } from "lucide-react";
 import ProfileStatusTable from "./ProfileStatusTable";
 import { getProfileStatusList } from "../../../services/profileStatusService";
 import { toast } from "../../../components/Toast";
 
-const ProfileStatusPage = () => {
-  const { id }     = useParams();   // customer id from URL
-  const navigate   = useNavigate();
-
+const ProfileStatus = ({ customerId, customerName, isOpen, onClose }) => {
   const [demandId, setDemandId] = useState("");
   const [demands,  setDemands]  = useState([]);
   const [data,     setData]     = useState([]);
   const [loading,  setLoading]  = useState(false);
 
-  // Load demands dropdown from already-fetched customer demands
-  // We reuse the existing /customers_details/details/{id} endpoint
   useEffect(() => {
+    if (!isOpen) return;
     const fetchDemands = async () => {
       try {
-        const res = await fetch(
-          `${process.env.REACT_APP_API_BASE_URL}/customers_details/details/${id}`
+        const res  = await fetch(
+          `${process.env.REACT_APP_API_BASE_URL}/customers_details/details/${customerId}`
         );
         const json = await res.json();
         setDemands(json.demands || []);
-      } catch (err) {
+      } catch {
         toast.error("Failed to load demands");
       }
     };
     fetchDemands();
-  }, [id]);
+  }, [isOpen, customerId]);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, [isOpen]);
 
   const loadData = useCallback(async () => {
     if (!demandId) return;
     try {
       setLoading(true);
-      const res = await getProfileStatusList(demandId, id);
+      const res = await getProfileStatusList(demandId, customerId);
       setData(res.data.data || []);
-    } catch (err) {
-      console.error(err);
+    } catch {
       toast.error("Failed to load profiles");
     } finally {
       setLoading(false);
     }
-  }, [demandId, id]);
+  }, [demandId, customerId]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  return (
-    <div style={{ padding: "24px" }}>
+  const handleClose = () => {
+    setDemandId("");
+    setDemands([]);
+    setData([]);
+    onClose();
+  };
 
+if (!isOpen) return null;
+
+return (
+  <>
+    {/* Backdrop */}
+    <div
+      style={{
+        position: "fixed", inset: 0, zIndex: 1000,
+        background: "rgba(0,0,0,0.5)",
+        backdropFilter: "blur(4px)",
+      }}
+      onClick={handleClose}
+    />
+
+    {/* Modal */}
+    <div
+      style={{
+        position: "fixed",
+        top: "50%", left: "50%",
+        transform: "translate(-50%, -50%)",
+        zIndex: 1001,
+        background: "#ffffff",
+        borderRadius: "16px",
+        width: "95%",
+        maxWidth: "1400px",
+        maxHeight: "90vh",
+        display: "flex",
+        flexDirection: "column",
+        boxShadow: "0 24px 64px rgba(0,0,0,0.2)",
+      }}
+    >
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
-        <button className="btn-icon" onClick={() => navigate(`/customers/${id}`)}>
-          <ArrowLeft size={18} /> Back
+      <div style={{
+        display: "flex", alignItems: "center",
+        justifyContent: "space-between",
+        padding: "20px 24px 16px",
+        borderBottom: "1px solid var(--ats-border)",
+        flexShrink: 0,
+      }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--ats-primary)", fontFamily: "Inter, sans-serif" }}>
+            Profile Status
+          </h2>
+        </div>
+        <button
+          onClick={handleClose}
+          style={{
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            width: 32, height: 32, background: "none", border: "none",
+            borderRadius: 8, cursor: "pointer", color: "var(--ats-secondary)",
+          }}
+        >
+          <X size={18} />
         </button>
-        <h2 className="ats-heading-1">Profile Status</h2>
       </div>
 
-      {/* Demand filter */}
-      <div style={{ marginBottom: 20, maxWidth: 360 }}>
-        <label className="form-label">Select Demand</label>
+      {/* Demand Filter */}
+      <div style={{
+        padding: "14px 24px",
+        borderBottom: "1px solid var(--ats-border)",
+        flexShrink: 0,
+        display: "flex", alignItems: "center", gap: 12,
+      }}>
+        <label style={{
+          fontSize: 13, fontWeight: 600, color: "var(--ats-primary)",
+          fontFamily: "Inter, sans-serif", whiteSpace: "nowrap",
+        }}>
+          Select Demand
+        </label>
         <select
-          className="form-input"
+          className="form-select"
+          style={{ maxWidth: 380 }}
           value={demandId}
           onChange={(e) => { setData([]); setDemandId(e.target.value); }}
         >
@@ -77,19 +143,21 @@ const ProfileStatusPage = () => {
         </select>
       </div>
 
-      {/* Table */}
-      {demandId ? (
-        <ProfileStatusTable
-          data={data}
-          reload={loadData}
-          loading={loading}
-        />
-      ) : (
-        <p className="detail-empty">Select a demand above to view profiles.</p>
-      )}
-
+      {/* Scrollable Table Body */}
+      <div style={{ overflowY: "auto", flex: 1, padding: "0 24px 24px" }}>
+        {demandId ? (
+          <ProfileStatusTable data={data} reload={loadData} loading={loading} />
+        ) : (
+          <p style={{
+            textAlign: "center", padding: "40px 0",
+            color: "var(--ats-secondary)", fontFamily: "Inter, sans-serif", fontSize: 14,
+          }}>
+            Select a demand above to view profiles.
+          </p>
+        )}
+      </div>
     </div>
-  );
-};
+  </>);
+}
 
-export default ProfileStatusPage;
+export default ProfileStatus;

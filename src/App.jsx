@@ -16,7 +16,7 @@ import CustomerCreate from './components/pages/Customer/CustomerCreate';
 import LoginPage from './components/pages/Auth/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { isLoggedIn, clearSession } from './services/authService';
-import ProfileStatusPage from './components/pages/ProfileStatus/ProfileStatus';
+import ProfileStatusModal  from './components/pages/ProfileStatus/ProfileStatus';
 import DemandReportPage from './components/pages/DemandReport/DemandReportPage';
 import ToastContainer from './components/Toast';
 import './global.css';
@@ -142,7 +142,7 @@ const App = () => {
           element={
             <ProtectedRoute>
               <AppShell>
-                <ProfileStatusPage />
+                <ProfileStatusModal />
               </AppShell>
             </ProtectedRoute>
           }
@@ -160,6 +160,10 @@ const App = () => {
         />
 
         <Route path="*" element={<Navigate to="/" replace />} />
+
+        <Route path="/customers/:id/profile-status" element={<ProfileStatusModal  />} />
+
+
       </Routes>
 
       <ToastContainer />

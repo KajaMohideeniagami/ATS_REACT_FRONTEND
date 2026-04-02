@@ -146,3 +146,25 @@ export const getCountries = async () => {
     ];
   }
 };
+
+export const getProfileStatuses = async () => {
+  try {
+    const response = await api.get(`${process.env.REACT_APP_API_LOVS}profile-statuses`);
+    console.log('Profile Statuses API Response:', response.data);
+
+    let data = response.data;
+    if (data.items && Array.isArray(data.items)) {
+      return data.items;
+    } else if (data.data && Array.isArray(data.data)) {
+      return data.data;
+    } else if (Array.isArray(data)) {
+      return data;
+    } else {
+      console.warn('Unexpected profile statuses API response structure:', data);
+      return [];
+    }
+  } catch (error) {
+    console.error('Profile Statuses API Error:', error);
+    return [];
+  }
+};
