@@ -1,134 +1,235 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import CustomerList   from './components/pages/Customer/CustomerList';
+import {
+  BarChart3,
+  BriefcaseBusiness,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Settings,
+  UserSearch,
+  Users,
+} from 'lucide-react';
+import CustomerList from './components/pages/Customer/CustomerList';
 import CustomerDetail from './components/pages/Customer/CustomerDetail';
 import CustomerCreate from './components/pages/Customer/CustomerCreate';
-import LoginPage      from './components/pages/Auth/LoginPage';
+import LoginPage from './components/pages/Auth/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { isLoggedIn, clearSession } from './services/authService';
 import ProfileStatusPage from './components/pages/ProfileStatus/ProfileStatus';
-import {LogOut } from 'lucide-react';
+import DemandReportPage from './components/pages/DemandReport/DemandReportPage';
+import ToastContainer from './components/Toast';
 import './global.css';
 
-// ── App Header ─────────────────────────────────────────────────────────────
-const AppHeader = () => {
-  const location = useLocation();
-  const navigate  = useNavigate();
-  const isLogin   = location.pathname === '/login';
+const NAV_ITEMS = [
+  { label: 'Dashboard', icon: LayoutDashboard, path: null },
+  { label: 'Executive Dashboard', icon: BarChart3, path: null },
+  { label: 'Customer', icon: Users, path: '/' },
+  { label: 'Profile Report', icon: UserSearch, path: null },
+  { label: 'Demand Report Data', icon: BriefcaseBusiness, path: '/demand-report' },
+  { label: 'Vendor Report Data', icon: BriefcaseBusiness, path: null },
+  { label: 'Candidate Report', icon: UserSearch, path: null },
+  { label: 'Administration', icon: Settings, path: null },
+];
 
-  if (isLogin) return null;
+const AppShell = ({ children }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     clearSession();
     navigate('/login');
   };
 
+  const handleNavClick = (item) => {
+    if (!item.path) return;
+    navigate(item.path);
+  };
+
   return (
-    <header className="app-header">
-      <div className="app-header-inner">
+    <div className="app-shell">
+      <header className="app-header">
+        <div className="app-header-inner">
+          <div className="app-header-brand">
+            <button className="app-header-menu" type="button" aria-label="Navigation">
+              <Menu size={20} />
+            </button>
+            <span className="app-header-title">Iagami - Applicant Tracking Software (ATS)</span>
+          </div>
 
-        {/* Brand */}
-        <div className="app-header-brand">
-          <span className="app-header-title">Iagami</span>
-          <span className="app-header-divider">|</span>
-          <span className="app-header-subtitle">Applicant Tracking Software (ATS)</span>
+          {isLoggedIn() && (
+            <div className="app-header-actions">
+              <span className="app-header-user">Workspace User</span>
+              <button className="app-header-logout" onClick={handleLogout}>
+                <LogOut size={14} />
+                Logout
+              </button>
+            </div>
+          )}
         </div>
+      </header>
 
-        {/* Logout */}
-        {isLoggedIn() && (
-          <button className="app-header-logout" onClick={handleLogout}>
-            <LogOut size={14} />
-            Logout
-          </button>
-        )}
+      <div className="app-layout">
+        <aside className="app-sidebar">
+          <nav className="app-sidebar-nav">
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const active = item.path ? location.pathname === item.path : false;
 
+              return (
+                <button
+                  key={item.label}
+                  type="button"
+                  className={`app-sidebar-link ${active ? 'active' : ''} ${item.path ? '' : 'disabled'}`}
+                  onClick={() => handleNavClick(item)}
+                  disabled={!item.path}
+                >
+                  <Icon size={18} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
+
+        <main className="app-content">{children}</main>
       </div>
-    </header>
+    </div>
   );
 };
 
 const App = () => {
   return (
     <Router>
-      <AppHeader />
       <Routes>
-
-        {/* ── Public Route ── */}
         <Route path="/login" element={<LoginPage />} />
 
-        {/* ── Protected Routes ── */}
-        <Route path="/" element={
-          <ProtectedRoute>
-            <CustomerList />
-          </ProtectedRoute>
-        } />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <CustomerList />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
 
-        <Route path="/customers/create" element={
-          <ProtectedRoute>
-            <CustomerCreate />
-          </ProtectedRoute>
-        } />
+        <Route
+          path="/customers/create"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <CustomerCreate />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
 
-        <Route path="/customers/:id" element={
-          <ProtectedRoute>
-            <CustomerDetail />
-          </ProtectedRoute>
-        } />
+        <Route
+          path="/customers/:id"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <CustomerDetail />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
 
-        {/* ── Fallback ── */}
+        <Route
+          path="/customers/:id/profile-status"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <ProfileStatusPage />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/demand-report"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <DemandReportPage />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+
         <Route path="*" element={<Navigate to="/" replace />} />
-
-        <Route path="/customers/:id/profile-status" element={<ProfileStatusPage />} />
-
-
       </Routes>
 
+      <ToastContainer />
+
       <style>{`
+        .app-shell {
+          min-height: 100vh;
+          background: #f8fafc;
+        }
+
         .app-header {
           position: sticky;
           top: 0;
           z-index: 1000;
-          background: #1e293b;
-          border-bottom: 1px solid rgba(255,255,255,0.08);
-          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+          background: #1769b7;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.12);
         }
+
         .app-header-inner {
-          max-width: 1440px;
-          margin: 0 auto;
-          padding: 0 24px;
-          height: 25px;
+          width: 100%;
+          padding: 12px 18px;
+          min-height: 58px;
           display: flex;
           align-items: center;
           justify-content: space-between;
         }
+
         .app-header-brand {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 12px;
+          min-width: 0;
         }
-        .app-header-icon {
-          color: #60a5fa;
+
+        .app-header-menu {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 38px;
+          height: 38px;
+          background: rgba(255,255,255,0.08);
+          border: 1px solid rgba(255,255,255,0.12);
+          border-radius: 6px;
+          color: #ffffff;
           flex-shrink: 0;
         }
+
+        .app-header-actions {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+        }
+
         .app-header-title {
           font-family: 'Inter', sans-serif;
           font-size: 18px;
           font-weight: 700;
-          color: #f1f5f9;
-          letter-spacing: -0.3px;
+          color: #f8fbff;
+          letter-spacing: -0.2px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
-        .app-header-divider {
-          color: rgba(255,255,255,0.2);
-          font-size: 18px;
-          font-weight: 300;
+
+        .app-header-user {
+          font-size: 14px;
+          font-weight: 500;
+          color: rgba(255,255,255,0.92);
         }
-        .app-header-subtitle {
-          font-family: 'Inter', sans-serif;
-          font-size: 13px;
-          font-weight: 400;
-          color: #94a3b8;
-          letter-spacing: 0.1px;
-        }
+
         .app-header-logout {
           display: inline-flex;
           align-items: center;
@@ -136,25 +237,107 @@ const App = () => {
           font-family: 'Inter', sans-serif;
           font-size: 13px;
           font-weight: 600;
-          color: #fca5a5;
-          background: rgba(220,38,38,0.12);
-          border: 1px solid rgba(220,38,38,0.25);
+          color: #ffffff;
+          background: rgba(255,255,255,0.08);
+          border: 1px solid rgba(255,255,255,0.18);
           border-radius: 8px;
           padding: 7px 14px;
           cursor: pointer;
           transition: all 0.2s ease;
           white-space: nowrap;
         }
+
         .app-header-logout:hover {
-          background: rgba(220,38,38,0.25);
-          border-color: rgba(220,38,38,0.5);
-          color: #fecaca;
+          background: rgba(255,255,255,0.16);
+          border-color: rgba(255,255,255,0.28);
         }
 
-        @media (max-width: 600px) {
-          .app-header-subtitle { display: none; }
-          .app-header-divider  { display: none; }
-          .app-header-inner    { padding: 0 16px; }
+        .app-layout {
+          display: flex;
+          min-height: calc(100vh - 58px);
+        }
+
+        .app-sidebar {
+          width: 298px;
+          flex-shrink: 0;
+          background: #2f353a;
+          border-right: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .app-sidebar-nav {
+          display: flex;
+          flex-direction: column;
+          padding: 0;
+        }
+
+        .app-sidebar-link {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          width: 100%;
+          padding: 16px 14px;
+          background: transparent;
+          border: none;
+          border-bottom: 1px solid rgba(255,255,255,0.08);
+          border-left: 4px solid transparent;
+          color: #ffffff;
+          font-size: 15px;
+          font-weight: 500;
+          text-align: left;
+          cursor: pointer;
+          transition: background 0.18s ease, border-left-color 0.18s ease;
+        }
+
+        .app-sidebar-link:hover:not(.disabled) {
+          background: #383f45;
+        }
+
+        .app-sidebar-link.active {
+          background: #23282d;
+          border-left-color: #0d6ddf;
+          font-weight: 700;
+        }
+
+        .app-sidebar-link.disabled {
+          opacity: 0.9;
+          cursor: default;
+        }
+
+        .app-content {
+          flex: 1;
+          min-width: 0;
+        }
+
+        @media (max-width: 980px) {
+          .app-layout {
+            flex-direction: column;
+          }
+
+          .app-sidebar {
+            width: 100%;
+          }
+
+          .app-sidebar-nav {
+            overflow-x: auto;
+          }
+
+          .app-sidebar-link {
+            white-space: nowrap;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .app-header-inner {
+            padding: 10px 12px;
+          }
+
+          .app-header-title {
+            font-size: 15px;
+          }
+
+          .app-header-user {
+            display: none;
+          }
         }
       `}</style>
     </Router>
