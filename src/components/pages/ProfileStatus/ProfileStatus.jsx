@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import ProfileStatusTable from "./ProfileStatusTable";
 import { getProfileStatusList } from "../../../services/profileStatusService";
 import { toast } from "../../../components/Toast";
+import { API_BASE_URL, API_ENDPOINTS } from "../../../config/apiConfig";
 
 const ProfileStatus = ({ customerId, customerName, isOpen, onClose }) => {
   const [demandId, setDemandId] = useState("");
@@ -14,9 +15,7 @@ const ProfileStatus = ({ customerId, customerName, isOpen, onClose }) => {
     if (!isOpen) return;
     const fetchDemands = async () => {
       try {
-        const res  = await fetch(
-          `${process.env.REACT_APP_API_BASE_URL}/customers_details/details/${customerId}`
-        );
+        const res  = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CUSTOMER_DETAILS}${customerId}`);
         const json = await res.json();
         setDemands(json.demands || []);
       } catch {
@@ -161,3 +160,4 @@ return (
 }
 
 export default ProfileStatus;
+

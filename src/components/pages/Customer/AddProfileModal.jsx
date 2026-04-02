@@ -2,10 +2,11 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { X, Upload, FileText } from "lucide-react";
 import { toast } from "../../Toast";
 import axios from "axios";
+import { API_BASE_URL, API_ENDPOINTS, LOV_ENDPOINTS } from "../../../config/apiConfig";
 import { getDemandDetails } from "../../../services/demandService";
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL,
+  baseURL: API_BASE_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -120,15 +121,13 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
   // ── Load LOVs ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) return;
-    const base = process.env.REACT_APP_API_LOVS;
-
     const loadLovs = async () => {
       const [wm, cu, av, tx, vd] = await Promise.all([
-        getLovData(`${base}work-modes`),
-        getLovData(`${base}currencies`),
-        getLovData(`${base}profile-availability`),
-        getLovData(`${base}tax-terms`),
-        getLovData(`${base}vendors`),
+        getLovData(LOV_ENDPOINTS.WORK_MODES),
+        getLovData(LOV_ENDPOINTS.CURRENCIES),
+        getLovData(LOV_ENDPOINTS.PROFILE_AVAILABILITY),
+        getLovData(LOV_ENDPOINTS.TAX_TERMS),
+        getLovData(LOV_ENDPOINTS.VENDORS),
       ]);
       setWorkModes(wm);
       setCurrencies(cu);
@@ -267,7 +266,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
       };
 
       const response = await api.post(
-        process.env.REACT_APP_ADD_PROFILE,
+        API_ENDPOINTS.ADD_PROFILE,
         payload
       );
 
@@ -284,7 +283,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
         const base64 = await fileToBase64(selectedFile);
 
         const uploadRes = await api.post(
-          process.env.REACT_APP_API_PROFILE_UPLOAD,
+          API_ENDPOINTS.PROFILE_UPLOAD,
           {
             profile_id:     profileId,
             file_name:      selectedFile.name,
@@ -775,3 +774,6 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
 };
 
 export default AddProfileModal;
+
+
+

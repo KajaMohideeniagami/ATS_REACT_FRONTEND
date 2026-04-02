@@ -1,15 +1,16 @@
 import axios from 'axios';
+import { API_BASE_URL, LOV_ENDPOINTS } from '../config/apiConfig';
 
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL,
+  baseURL: API_BASE_URL,
   timeout: 10000,
 });
 
 // LOV Service functions
 export const getIndustries = async () => {
   try {
-    const response = await api.get(`${process.env.REACT_APP_API_LOVS}industries`);
+    const response = await api.get(`${LOV_ENDPOINTS.INDUSTRIES}`);
     console.log('Industries API Response:', response.data);
 
     // Handle different API response structures
@@ -46,7 +47,7 @@ export const getIndustries = async () => {
 
 export const getTypes = async () => {
   try {
-    const response = await api.get(`${process.env.REACT_APP_API_LOVS}types`);
+    const response = await api.get(`${LOV_ENDPOINTS.TYPES}`);
     console.log('Types API Response:', response.data);
 
     // Handle different API response structures
@@ -79,7 +80,7 @@ export const getTypes = async () => {
 
 export const getEngagementTypes = async () => {
   try {
-    const response = await api.get(`${process.env.REACT_APP_API_LOVS}engagement-types`);
+    const response = await api.get(`${LOV_ENDPOINTS.ENGAGEMENT_TYPES}`);
     console.log('Engagement Types API Response:', response.data);
 
     // Handle different API response structures
@@ -112,7 +113,7 @@ export const getEngagementTypes = async () => {
 
 export const getCountries = async () => {
   try {
-    const response = await api.get(`${process.env.REACT_APP_API_LOVS}countries`);
+    const response = await api.get(`${LOV_ENDPOINTS.COUNTRIES}`);
     console.log('Countries API Response:', response.data);
 
     // Handle different API response structures
@@ -149,7 +150,7 @@ export const getCountries = async () => {
 
 export const getProfileStatuses = async () => {
   try {
-    const response = await api.get(`${process.env.REACT_APP_API_LOVS}profile-statuses`);
+    const response = await api.get(`${LOV_ENDPOINTS.PROFILE_STATUSES}`);
     console.log('Profile Statuses API Response:', response.data);
 
     let data = response.data;

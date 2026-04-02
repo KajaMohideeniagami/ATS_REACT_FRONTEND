@@ -1,17 +1,8 @@
 import axios from 'axios';
+import { API_BASE_URL, API_ENDPOINTS } from '../config/apiConfig';
 
-// ─────────────────────────────────────────────
-// ENV CONFIG
-// ─────────────────────────────────────────────
-const BASE_URL = process.env.REACT_APP_API_BASE_URL;
-
-console.log('API BASE URL:', BASE_URL);
-
-// ─────────────────────────────────────────────
-// AXIOS INSTANCE
-// ─────────────────────────────────────────────
 const api = axios.create({
-  baseURL: BASE_URL,
+  baseURL: API_BASE_URL,
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
@@ -19,15 +10,11 @@ const api = axios.create({
   },
 });
 
-// ─────────────────────────────────────────────
-// REQUEST INTERCEPTOR (Token Support - future ready)
-// ─────────────────────────────────────────────
 api.interceptors.request.use((config) => {
   const session = sessionStorage.getItem('ats_user');
 
   if (session) {
     const user = JSON.parse(session);
-
     if (user?.token) {
       config.headers.Authorization = `Bearer ${user.token}`;
     }
@@ -36,9 +23,6 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// ─────────────────────────────────────────────
-// RESPONSE INTERCEPTOR (Global Error Handling)
-// ─────────────────────────────────────────────
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -53,17 +37,11 @@ api.interceptors.response.use(
   }
 );
 
-// ─────────────────────────────────────────────
-// GENERIC GET
-// ─────────────────────────────────────────────
 export const getRequest = async (url) => {
   const response = await api.get(url);
   return response.data;
 };
 
-// ─────────────────────────────────────────────
-// 🔥 GENERIC POST (FIX FOR YOUR ERROR)
-// ─────────────────────────────────────────────
 export const postRequest = async (url, data) => {
   try {
     const response = await api.post(url, data);
@@ -74,13 +52,9 @@ export const postRequest = async (url, data) => {
   }
 };
 
-// ─────────────────────────────────────────────
-// GET PROFILES
-// ─────────────────────────────────────────────
 export const getProfiles = async () => {
   try {
-    const data = await getRequest(process.env.REACT_APP_ENDPOINT);
-    console.log('API Response:', data);
+    const data = await getRequest(API_ENDPOINTS.DASHBOARD);
     return data.items || [];
   } catch (error) {
     console.error('API Error:', error);
@@ -88,9 +62,6 @@ export const getProfiles = async () => {
   }
 };
 
-// ─────────────────────────────────────────────
-// MOCK CREATE CUSTOMER
-// ─────────────────────────────────────────────
 export const createCustomer = async (customerData) => {
   console.log('Mock API Call - Creating customer:', customerData);
 
@@ -103,9 +74,9 @@ export const createCustomer = async (customerData) => {
           response: {
             status: 500,
             data: {
-              message: 'Internal server error. Please try again.'
-            }
-          }
+              message: 'Internal server error. Please try again.',
+            },
+          },
         });
         return;
       }
@@ -115,9 +86,9 @@ export const createCustomer = async (customerData) => {
           response: {
             status: 400,
             data: {
-              message: 'Customer code already exists.'
-            }
-          }
+              message: 'Customer code already exists.',
+            },
+          },
         });
         return;
       }
@@ -131,8 +102,8 @@ export const createCustomer = async (customerData) => {
         data: {
           ...customerData,
           customer_id: customerId,
-          created_at: new Date().toISOString()
-        }
+          created_at: new Date().toISOString(),
+        },
       });
     }, delay);
   });

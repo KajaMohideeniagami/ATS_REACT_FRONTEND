@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { API_BASE_URL, API_ENDPOINTS } from '../config/apiConfig';
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL,
+  baseURL: API_BASE_URL,
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
@@ -9,13 +10,9 @@ const api = axios.create({
   },
 });
 
-// ── Login ─────────────────────────────────────────────────────────────────
 export const login = async (username, password) => {
   try {
-    const response = await api.post(
-      process.env.REACT_APP_API_LOGIN,
-      { username, password }
-    );
+    const response = await api.post(API_ENDPOINTS.LOGIN, { username, password });
     return response.data;
   } catch (error) {
     console.error('Login Error:', error);
@@ -23,7 +20,6 @@ export const login = async (username, password) => {
   }
 };
 
-// ── Session helpers ───────────────────────────────────────────────────────
 export const saveSession = (userData) => {
   sessionStorage.setItem('ats_user', JSON.stringify(userData));
 };
@@ -41,6 +37,4 @@ export const clearSession = () => {
   sessionStorage.removeItem('ats_user');
 };
 
-export const isLoggedIn = () => {
-  return getSession() !== null;
-};
+export const isLoggedIn = () => getSession() !== null;

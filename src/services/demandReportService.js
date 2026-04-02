@@ -1,17 +1,8 @@
 import axios from 'axios';
-
-const normalizeReportPath = (path) => {
-  if (!path) return path;
-  if (/^https?:\/\//i.test(path)) return path;
-  if (path.startsWith('/ords/iagami_ops/')) return path;
-  if (path.startsWith('/')) return `/ords/iagami_ops${path}`;
-  return `/ords/iagami_ops/${path}`;
-};
-
-const CUSTOMER_LOV_URL = normalizeReportPath(process.env.REACT_APP_API_DEMAND_REPORT_CUSTOMERS);
-const DEMAND_REPORT_URL = normalizeReportPath(process.env.REACT_APP_API_DEMAND_REPORT);
+import { API_BASE_URL, API_ENDPOINTS } from '../config/apiConfig';
 
 const demandReportApi = axios.create({
+  baseURL: API_BASE_URL,
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
@@ -62,7 +53,7 @@ const normalizeCustomer = (customer) => {
 };
 
 export const getDemandReportCustomers = async () => {
-  const response = await demandReportApi.get(CUSTOMER_LOV_URL);
+  const response = await demandReportApi.get(API_ENDPOINTS.DEMAND_REPORT_CUSTOMERS);
 
   return extractList(response.data)
     .map(normalizeCustomer)
@@ -89,7 +80,7 @@ const buildDemandReportParams = ({ customer, demandStatus, demandType } = {}) =>
 };
 
 export const getDemandReportRows = async (filters = {}) => {
-  const response = await demandReportApi.get(DEMAND_REPORT_URL, {
+  const response = await demandReportApi.get(API_ENDPOINTS.DEMAND_REPORT, {
     params: buildDemandReportParams(filters),
   });
 

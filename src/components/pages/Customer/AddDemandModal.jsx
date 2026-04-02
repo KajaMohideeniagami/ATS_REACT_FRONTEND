@@ -3,6 +3,7 @@ import { X, Upload, Zap } from 'lucide-react';
 import { addDemand, extractJD, uploadDemandFiles } from '../../../services/demandService';
 import { toast } from '../../Toast';
 import axios from 'axios';
+import { API_BASE_URL, LOV_ENDPOINTS } from '../../../config/apiConfig';
 import mammoth from 'mammoth';
 
 // ── Load pdf.js from CDN dynamically ─────────────────────────────────────
@@ -22,7 +23,7 @@ const loadPdfJs = () =>
 
 // ── Fetch LOV data ────────────────────────────────────────────────────────
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL,
+  baseURL: API_BASE_URL,
   timeout: 10000,
 });
 
@@ -153,12 +154,12 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
     const loadLovs = async () => {
       setLovLoading(true);
       const [lt, jt, wm, ds, cn, cu] = await Promise.all([
-        getLovData(`${process.env.REACT_APP_API_LOVS}demand-types`),
-        getLovData(`${process.env.REACT_APP_API_LOVS}job-types`),
-        getLovData(`${process.env.REACT_APP_API_LOVS}work-modes`),
-        getLovData(`${process.env.REACT_APP_API_LOVS}decision-statuses`),
-        getLovData(`${process.env.REACT_APP_API_LOVS}countries`),
-        getLovData(`${process.env.REACT_APP_API_LOVS}currencies`),
+        getLovData(LOV_ENDPOINTS.DEMAND_TYPES),
+        getLovData(LOV_ENDPOINTS.JOB_TYPES),
+        getLovData(LOV_ENDPOINTS.WORK_MODES),
+        getLovData(LOV_ENDPOINTS.DECISION_STATUSES),
+        getLovData(LOV_ENDPOINTS.COUNTRIES),
+        getLovData(LOV_ENDPOINTS.CURRENCIES),
       ]);
       setLocationTypes(lt);
       setJobTypes(jt);
@@ -854,3 +855,4 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
 };
 
 export default AddDemandModal;
+

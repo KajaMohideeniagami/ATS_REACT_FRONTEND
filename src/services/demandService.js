@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { API_BASE_URL, API_ENDPOINTS } from '../config/apiConfig';
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL,
+  baseURL: API_BASE_URL,
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
@@ -9,13 +10,9 @@ const api = axios.create({
   },
 });
 
-// ── Add Demand ─────────────────────────────────────────────────────────────
 export const addDemand = async (demandData) => {
   try {
-    const response = await api.post(
-      process.env.REACT_APP_API_ADD_DEMAND,
-      demandData
-    );
+    const response = await api.post(API_ENDPOINTS.ADD_DEMAND, demandData);
     console.log('Add Demand Response:', response.data);
     return response.data;
   } catch (error) {
@@ -24,13 +21,9 @@ export const addDemand = async (demandData) => {
   }
 };
 
-// ── Extract JD via Gemini AI ───────────────────────────────────────────────
 export const extractJD = async (jobDescription) => {
   try {
-    const response = await api.post(
-      process.env.REACT_APP_API_DEMAND_EXTRACT,
-      { job_description: jobDescription }
-    );
+    const response = await api.post(API_ENDPOINTS.DEMAND_EXTRACT, { job_description: jobDescription });
     console.log('Extract JD Response:', response.data);
     return response.data;
   } catch (error) {
@@ -39,13 +32,9 @@ export const extractJD = async (jobDescription) => {
   }
 };
 
-// ── Upload Demand Files (JD + IQ) to OCI ──────────────────────────────────
 export const uploadDemandFiles = async (uploadData) => {
   try {
-    const response = await api.post(
-      process.env.REACT_APP_API_DEMAND_UPLOAD,
-      uploadData
-    );
+    const response = await api.post(API_ENDPOINTS.DEMAND_UPLOAD, uploadData);
     console.log('Upload Files Response:', response.data);
     return response.data;
   } catch (error) {
@@ -54,13 +43,11 @@ export const uploadDemandFiles = async (uploadData) => {
   }
 };
 
-// ── Get Demand Details by Customer ID + Demand ID ─────────────────────────
 export const getDemandDetails = async (customerId, demandId) => {
   try {
-const response = await api.get(
-  process.env.REACT_APP_API_DEMAND_DETAILS || "/demands_api/details",
-  { params: { customer_id: customerId, demand_id: demandId } }
-);
+    const response = await api.get(API_ENDPOINTS.DEMAND_DETAILS, {
+      params: { customer_id: customerId, demand_id: demandId },
+    });
     console.log('Demand Details Response:', response.data);
     return response.data;
   } catch (error) {
