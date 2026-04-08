@@ -10,14 +10,17 @@ import {
   RotateCcw,
   Search,
 } from 'lucide-react';
-import { toast } from '../../../components/toast/index';
-import { getDemandReportCustomers, getDemandReportRows } from '../../../services/demandReportService';
+import { toast } from '../../../components/Toast';
+import {
+  getVendorReportCustomers,
+  getVendorReportRows,
+  getVendorReportVendors,
+} from '../../../services/vendorReportService';
 import '../../../global.css';
 
 const STATUS_OPTIONS = ['All', 'Open', 'Closed', 'Hold', 'Lost'];
-const TYPE_OPTIONS = ['All', 'Offshore', 'Onsite', 'NearShore'];
 const PAGE_SIZE = 10;
-const COLUMN_PREFS_KEY = 'ats_demand_report_column_prefs';
+const COLUMN_PREFS_KEY = 'ats_vendor_report_column_prefs';
 
 const getValue = (row, keys) => {
   for (const key of keys) {
@@ -59,14 +62,6 @@ const formatCell = (value) => {
   return String(value);
 };
 
-const resultTone = (value) => {
-  const normalized = normalize(value);
-
-  if (normalized.includes('green')) return 'green';
-  if (normalized.includes('amber') || normalized.includes('yellow')) return 'amber';
-  return 'red';
-};
-
 const matchesSearch = (row, searchTerm) => {
   if (!searchTerm.trim()) return true;
 
@@ -92,15 +87,6 @@ const isDateColumn = (columnKey) => normalize(columnKey).includes('date');
 
 const renderCellValue = (columnKey, value) => {
   const normalizedColumnKey = normalize(columnKey);
-
-  if (normalizedColumnKey === 'result sign' || normalizedColumnKey === 'result_sign') {
-    return (
-      <span className={`result-pill ${resultTone(value)}`}>
-        <span className="result-pill-dot" />
-        {formatCell(value)}
-      </span>
-    );
-  }
 
   if (normalizedColumnKey === 'demand status' || normalizedColumnKey === 'demand_status') {
     return (
@@ -140,17 +126,19 @@ const readColumnPrefs = () => {
   }
 };
 
-const DemandReportPage = () => {
+const VendorReportPage = () => {
   const actionsRef = useRef(null);
 
   const [customers, setCustomers] = useState([]);
+  const [vendors, setVendors] = useState([]);
   const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [filtersLoading, setFiltersLoading] = useState(true);
+  const [rowsLoading, setRowsLoading] = useState(true);
   const [error, setError] = useState('');
 
   const [selectedCustomer, setSelectedCustomer] = useState('All');
-  const [selectedStatus, setSelectedStatus] = useState('Open');
-  const [selectedType, setSelectedType] = useState('All');
+  const [selectedVendor, setSelectedVendor] = useState('All');
+  const [selectedStatus, setSelectedStatus] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [actionsOpen, setActionsOpen] = useState(false);
@@ -172,49 +160,53 @@ const DemandReportPage = () => {
   }, []);
 
   useEffect(() => {
-    const loadCustomers = async () => {
+    const loadFilters = async () => {
       try {
-        setLoading(true);
         setError('');
 
-        const customerList = await getDemandReportCustomers();
+        const [customerList, vendorList] = await Promise.all([
+          getVendorReportCustomers(),
+          getVendorReportVendors(),
+        ]);
+
         setCustomers(customerList);
+        setVendors(vendorList);
       } catch (fetchError) {
-        console.error('Demand report customer load error:', fetchError);
-        setError('Failed to load demand report filters.');
-        toast.error('Failed to load demand report filters.');
+        console.error('Vendor report filter load error:', fetchError);
+        setError('Failed to load vendor report filters.');
+        toast.error('Failed to load vendor report filters.');
       } finally {
-        setLoading(false);
+        setFiltersLoading(false);
       }
     };
 
-    loadCustomers();
+    loadFilters();
   }, []);
 
   const loadRows = useCallback(async () => {
     try {
-      setLoading(true);
+      setRowsLoading(true);
       setError('');
 
-      const reportRows = await getDemandReportRows({
+      const reportRows = await getVendorReportRows({
         customer: selectedCustomer,
+        vendor: selectedVendor,
         demandStatus: selectedStatus,
-        demandType: selectedType,
       });
 
       setRows(Array.isArray(reportRows) ? reportRows : []);
     } catch (fetchError) {
-      console.error('Demand report row load error:', fetchError);
-      setError('Failed to load demand report data.');
-      toast.error('Failed to load demand report data.');
+      console.error('Vendor report row load error:', fetchError);
+      setError('Failed to load vendor report data.');
+      toast.error('Failed to load vendor report data.');
     } finally {
-      setLoading(false);
+      setRowsLoading(false);
     }
-  }, [selectedCustomer, selectedStatus, selectedType]);
+  }, [selectedCustomer, selectedVendor, selectedStatus]);
 
   useEffect(() => {
     setPage(1);
-  }, [selectedCustomer, selectedStatus, selectedType, searchTerm]);
+  }, [selectedCustomer, selectedVendor, selectedStatus, searchTerm]);
 
   useEffect(() => {
     loadRows();
@@ -267,6 +259,7 @@ const DemandReportPage = () => {
   }, [columnOrder, hiddenColumns]);
 
   const activeColumns = columnOrder.filter((column) => !hiddenColumns.includes(column));
+  const loading = filtersLoading || rowsLoading;
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -276,8 +269,8 @@ const DemandReportPage = () => {
 
   const resetFilters = () => {
     setSelectedCustomer('All');
-    setSelectedStatus('Open');
-    setSelectedType('All');
+    setSelectedVendor('All');
+    setSelectedStatus('All');
     setSearchTerm('');
   };
 
@@ -337,7 +330,7 @@ const DemandReportPage = () => {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'demand-report.csv';
+    link.download = 'vendor-report.csv';
     link.click();
     window.URL.revokeObjectURL(url);
     setActionsOpen(false);
@@ -348,7 +341,7 @@ const DemandReportPage = () => {
     await loadRows();
     setActionsOpen(false);
     setColumnsOpen(false);
-    toast.success('Demand report refreshed.');
+    toast.success('Vendor report refreshed.');
   };
 
   const handleResetView = () => {
@@ -363,7 +356,7 @@ const DemandReportPage = () => {
   if (loading) {
     return (
       <div className="customer-list-container">
-        <div className="loading">Loading demand report...</div>
+        <div className="loading">Loading vendor report...</div>
       </div>
     );
   }
@@ -383,8 +376,8 @@ const DemandReportPage = () => {
           <div className="demand-report-title-wrap">
             <div>
               <div className="demand-report-kicker">Analytics</div>
-              <h1 className="ats-heading-1">Demand Report</h1>
-              <p className="ats-body-small">Filter and review demand pipeline data in one place.</p>
+              <h1 className="ats-heading-1">Vendor Report</h1>
+              <p className="ats-body-small">Filter and review vendor pipeline data in one place.</p>
             </div>
           </div>
 
@@ -395,11 +388,11 @@ const DemandReportPage = () => {
         </div>
 
         <div className="demand-report-panel">
-          <div className="demand-report-filters">
-            <div className="filter-group">
+          <div className="demand-report-filters vendor-report-filters">
+            <div className="filter-group filter-group-compact">
               <label className="form-label">Customer</label>
               <select
-                className="form-select"
+                className="form-select report-filter-select"
                 value={selectedCustomer}
                 onChange={(event) => setSelectedCustomer(event.target.value)}
               >
@@ -412,29 +405,30 @@ const DemandReportPage = () => {
               </select>
             </div>
 
-            <div className="filter-group">
-              <label className="form-label">Demand Status</label>
+            <div className="filter-group filter-group-compact">
+              <label className="form-label">Vendor</label>
               <select
-                className="form-select"
-                value={selectedStatus}
-                onChange={(event) => setSelectedStatus(event.target.value)}
+                className="form-select report-filter-select"
+                value={selectedVendor}
+                onChange={(event) => setSelectedVendor(event.target.value)}
               >
-                {STATUS_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
+                <option value="All">All</option>
+                {vendors.map((vendor) => (
+                  <option key={vendor.value} value={vendor.value}>
+                    {vendor.label}
                   </option>
                 ))}
               </select>
             </div>
 
-            <div className="filter-group">
-              <label className="form-label">Demand Type</label>
+            <div className="filter-group filter-group-compact">
+              <label className="form-label">Demand Status</label>
               <select
-                className="form-select"
-                value={selectedType}
-                onChange={(event) => setSelectedType(event.target.value)}
+                className="form-select report-filter-select"
+                value={selectedStatus}
+                onChange={(event) => setSelectedStatus(event.target.value)}
               >
-                {TYPE_OPTIONS.map((option) => (
+                {STATUS_OPTIONS.map((option) => (
                   <option key={option} value={option}>
                     {option}
                   </option>
@@ -569,9 +563,9 @@ const DemandReportPage = () => {
                   </tr>
                 ) : (
                   pagedRows.map((row, index) => (
-                    <tr key={getValue(row, ['demand_id', 'demandId', 'demand_code']) || `${currentPage}-${index}`}>
+                    <tr key={getValue(row, ['vendor_report_id', 'vendor_id', 'vendorId', 'demand_id', 'demandId']) || `${currentPage}-${index}`}>
                       {activeColumns.map((column) => (
-                        <td key={`${getValue(row, ['demand_id', 'demandId', 'demand_code']) || index}-${column}`}>
+                        <td key={`${getValue(row, ['vendor_report_id', 'vendor_id', 'vendorId', 'demand_id', 'demandId']) || index}-${column}`}>
                           {renderCellValue(column, row?.[column])}
                         </td>
                       ))}
@@ -609,5 +603,4 @@ const DemandReportPage = () => {
   );
 };
 
-export default DemandReportPage;
-
+export default VendorReportPage;

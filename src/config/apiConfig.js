@@ -30,6 +30,13 @@ export const API_ENDPOINTS = Object.freeze({
   PROFILE_STATUS_UPDATE: '/profile-status/update',
   DEMAND_REPORT_CUSTOMERS: '/lovs/customers',
   DEMAND_REPORT: '/reports/demandreports',
+  PROFILE_REPORT: '/reports/profilereport',
+  VENDOR_REPORT: '/reports/vendorreport',
+  ONBOARDED_REPORT: '/reports/onboardedreport',
+  ONBOARDED_FAILED_REPORT: '/reports/onboardedfailedreport',
+  CUSTOMER_REJECTED_REPORT: '/reports/customerrejectedreport',
+  VENDOR_MASTER_LIST: '/getvendors/vendorlist',
+  ADD_VENDOR: '/addvendors/vendor',
   SEND_VENDOR_EMAIL: '/vendor-email/send',
 });
 
