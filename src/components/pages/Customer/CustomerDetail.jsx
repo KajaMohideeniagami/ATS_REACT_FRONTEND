@@ -1,17 +1,23 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { getCustomerDetails } from "../../../services/customerDetailService";
+import { getDemandDownloadUrl } from "../../../services/demandService";
 import {
   ArrowLeft, Pencil, Eye,
   ChevronLeft, ChevronRight, Plus,
   UserPlus, Briefcase, User, Activity, Mail,
-  ChevronDown
+  ChevronDown, Trash2
 } from "lucide-react";
 import "../../../global.css";
 import AddContactModal from './AddContactModal';
 import AddDemandModal from './AddDemandModal';
 import AddProfileModal from './AddProfileModal';
 import ProfileStatusModal from '../ProfileStatus/ProfileStatus';
+import SendEmailToVendorsModal from './SendEmailToVendorsModal';
+import ViewDemandRequestModal from './ViewDemandRequestModal';
+import EditDemandModal from './EditDemandModal';
+import { deleteContact } from "../../../services/contactService";
+import { toast } from "../../Toast";
 const TABS = [
   { key: "all",      label: "Show All" },
   { key: "details",  label: "Customer Details" },
@@ -52,6 +58,13 @@ const Pagination = ({ total, page, onPage }) => {
 
 const paginate = (data, page) => data.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+const getContactId = (contact) =>
+  contact?.customer_contact_id ||
+  contact?.CUSTOMER_CONTACT_ID ||
+  contact?.contact_id ||
+  contact?.CONTACT_ID ||
+  null;
+
 // ═══════════════════════════════════════════════════════════════════════════
 const CustomerDetail = () => {
   const { id }    = useParams();
@@ -64,9 +77,15 @@ const CustomerDetail = () => {
   const [loading,        setLoading]        = useState(true);
   const [error,          setError]          = useState(null);
   const [showAddContact, setShowAddContact] = useState(false);
+  const [editingContact, setEditingContact] = useState(null);
+  const [contactToDelete, setContactToDelete] = useState(null);
+  const [deletingContact, setDeletingContact] = useState(false);
   const [showAddDemand, setShowAddDemand] = useState(false);
   const [showActions,    setShowActions]    = useState(false);
   const [showAddProfile, setShowAddProfile] = useState(false);
+  const [showSendEmailToVendors, setShowSendEmailToVendors] = useState(false);
+  const [viewDemandId, setViewDemandId] = useState(null);
+  const [editDemandId, setEditDemandId] = useState(null);
   const [selectedDemandId, setSelectedDemandId] = useState(null);
   const [selectedDemandInfo, setSelectedDemandInfo] = useState(null);
   const [showProfileStatus, setShowProfileStatus] = useState(false);
@@ -121,12 +140,63 @@ const CustomerDetail = () => {
 
   // ── Quick actions list ─────────────────────────────────────────────────
   const quickActions = [
-    { label: "Add Contact",icon: <UserPlus  size={14} />, action: () => { setShowActions(false); setShowAddContact(true); } },
+    { label: "Add Contact",icon: <UserPlus  size={14} />, action: () => { setShowActions(false); setEditingContact(null); setShowAddContact(true); } },
     { label: "Add Demand", icon: <Briefcase size={14} />, action: () => { setShowActions(false); setShowAddDemand(true); } },
     { label: "Add Profile", icon: <User size={14} />, action: () => { setShowActions(false); setSelectedDemandId(null); setSelectedDemandInfo(null); setShowAddProfile(true); } },
-{ label: "Profile Status", icon: <Activity size={14} />, action: () => { setShowActions(false); setShowProfileStatus(true); } },
-    { label: "Send Email To Vendors", icon: <Mail size={14} />, action: () => { setShowActions(false); } },
+    { label: "Profile Status", icon: <Activity size={14} />, action: () => { setShowActions(false); setShowProfileStatus(true); } },
+    { label: "Send Email To Vendors", icon: <Mail size={14} />, action: () => { setShowActions(false); setShowSendEmailToVendors(true); } },
   ];
+
+  const handleDeleteContact = async (contact) => {
+    setContactToDelete(contact);
+  };
+
+  const handleDemandDownload = async (demandId, fileType = "IQ") => {
+    if (!demandId) {
+      toast.error("Demand ID not found for this row.");
+      return;
+    }
+
+    try {
+      const response = await getDemandDownloadUrl(demandId, fileType);
+      if (!response.success || !response.download_url) {
+        toast.error(response.message || "Failed to generate download link.");
+        return;
+      }
+
+      window.open(response.download_url, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to download file.");
+    }
+  };
+
+  const confirmDeleteContact = async () => {
+    if (!contactToDelete) return;
+    const contactId = getContactId(contactToDelete);
+    if (!contactId) {
+      toast.error("Contact ID not found for this row.");
+      return;
+    }
+
+    setDeletingContact(true);
+    try {
+      const response = await deleteContact({
+        customer_contact_id: contactId,
+      });
+
+      if (response.success) {
+        toast.success("Contact deleted successfully!");
+        setContactToDelete(null);
+        loadData();
+      } else {
+        toast.error(response.message || "Failed to delete contact.");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to delete contact.");
+    } finally {
+      setDeletingContact(false);
+    }
+  };
 
   return (
     <div className="detail-page">
@@ -253,7 +323,7 @@ const CustomerDetail = () => {
               <div className="detail-section">
                 <h3 className="detail-section-title">
                   Contacts <span className="section-count">{contacts.length}</span>
-                  <button className="btn-add-section" onClick={() => setShowAddContact(true)}>
+                  <button className="btn-add-section" onClick={() => { setEditingContact(null); setShowAddContact(true); }}>
                     <Plus size={14} /> Add Contact
                   </button>
                 </h3>
@@ -276,13 +346,29 @@ const CustomerDetail = () => {
                           <tr key={i}>
                             <td className="col-actions">
                               <div className="action-btns">
-                                <button className="action-btn edit" title="Edit"><Pencil size={13} /></button>
+                                <button
+                                  className="action-btn edit"
+                                  title="Edit"
+                                  onClick={() => {
+                                    setEditingContact(c);
+                                    setShowAddContact(true);
+                                  }}
+                                >
+                                  <Pencil size={13} />
+                                </button>
+                                <button
+                                  className="action-btn delete"
+                                  title="Delete"
+                                  onClick={() => handleDeleteContact(c)}
+                                >
+                                  <Trash2 size={13} />
+                                </button>
                               </div>
                             </td>
                             <td>{c.contact_name || "—"}</td>
                             <td>{c.designation  || "—"}</td>
                             <td>{c.contact_no   || "—"}</td>
-                            <td>{c.email        || "—"}</td>
+                            <td>{c.email || c.email_id || "—"}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -331,8 +417,8 @@ const CustomerDetail = () => {
                             <tr key={i}>
                               <td className="col-actions">
                                 <div className="action-btns">
-                                  <button className="action-btn view" title="View"><Eye    size={13} /></button>
-                                  <button className="action-btn edit" title="Edit"><Pencil size={13} /></button>
+                                  <button className="action-btn view" title="View" onClick={() => setViewDemandId(d.demand_id)}><Eye size={13} /></button>
+                                  <button className="action-btn edit" title="Edit" onClick={() => setEditDemandId(d.demand_id)}><Pencil size={13} /></button>
                                 </div>
                               </td>
                               <td><span className="t-badge">{d.demand_code || "—"}</span></td>
@@ -353,7 +439,13 @@ const CustomerDetail = () => {
                               <td>{d.billing_ageing ?? "—"}</td>
                               <td>
                                 {d.file_name ? (
-                                  <a href={d.file_name} target="_blank" rel="noreferrer" className="t-link">Download</a>
+                                  <button
+                                    type="button"
+                                    className="table-link-btn"
+                                    onClick={() => handleDemandDownload(d.demand_id, "IQ")}
+                                  >
+                                    Download
+                                  </button>
                                 ) : "—"}
                               </td>
                               <td>{d.assigned_to_name || d.assigned_to || "—"}</td>
@@ -469,6 +561,9 @@ const CustomerDetail = () => {
               <div className="detail-section">
                 <h3 className="detail-section-title">
                   Demand Mail to Vendor <span className="section-count">{emails.length}</span>
+                  <button className="btn-add-section" onClick={() => setShowSendEmailToVendors(true)}>
+                    <Mail size={14} /> Send Email
+                  </button>
                 </h3>
                 {emails.length === 0 ? (
                   <p className="detail-empty">No vendor emails found.</p>
@@ -514,9 +609,10 @@ const CustomerDetail = () => {
       {/* ══ ADD CONTACT MODAL ══ */}
       <AddContactModal
         isOpen={showAddContact}
-        onClose={() => setShowAddContact(false)}
+        onClose={() => { setShowAddContact(false); setEditingContact(null); }}
         customerId={id}
         onSuccess={loadData}
+        editContact={editingContact}
       />
 
       <AddDemandModal
@@ -540,7 +636,68 @@ const CustomerDetail = () => {
         isOpen={showProfileStatus}
         onClose={() => setShowProfileStatus(false)}
       />
+      <SendEmailToVendorsModal
+        isOpen={showSendEmailToVendors}
+        onClose={() => setShowSendEmailToVendors(false)}
+        onSuccess={loadData}
+        customerId={id}
+        demands={demands}
+      />
+      <ViewDemandRequestModal
+        isOpen={Boolean(viewDemandId)}
+        onClose={() => setViewDemandId(null)}
+        customerId={id}
+        demandId={viewDemandId}
+      />
+      <EditDemandModal
+        isOpen={Boolean(editDemandId)}
+        onClose={() => setEditDemandId(null)}
+        onSuccess={loadData}
+        customerId={id}
+        demandId={editDemandId}
+      />
+      {contactToDelete && (
+        <>
+          <div className="modal-backdrop" onClick={() => !deletingContact && setContactToDelete(null)} />
+          <div className="contact-delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-contact-title">
+            <div className="contact-delete-header">
+              <h2 className="ats-heading-3" id="delete-contact-title">Delete Contact</h2>
+            </div>
+            <div className="contact-delete-body">
+              <p className="contact-delete-text">
+                Are you sure you want to delete{" "}
+                <strong>{contactToDelete.contact_name || "this contact"}</strong>?
+              </p>
+            </div>
+            <div className="contact-delete-footer">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setContactToDelete(null)}
+                disabled={deletingContact}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="contact-delete-btn"
+                onClick={confirmDeleteContact}
+                disabled={deletingContact}
+              >
+                {deletingContact ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
       <style>{`
+        .modal-backdrop {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.5);
+          backdrop-filter: blur(4px);
+          z-index: 1000;
+        }
         .detail-page {
           min-height: 100vh;
           background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
@@ -811,6 +968,69 @@ const CustomerDetail = () => {
         .action-btn.view:hover { background: rgba(37,99,235,0.2); }
         .action-btn.edit { background: rgba(217,119,6,0.1); color: #d97706; }
         .action-btn.edit:hover { background: rgba(217,119,6,0.2); }
+        .action-btn.delete { background: rgba(220,38,38,0.1); color: #dc2626; }
+        .action-btn.delete:hover { background: rgba(220,38,38,0.2); }
+        .contact-delete-modal {
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          z-index: 1001;
+          width: min(420px, calc(100vw - 24px));
+          background: #ffffff;
+          border-radius: 16px;
+          box-shadow: 0 24px 64px rgba(0,0,0,0.2);
+          overflow: hidden;
+        }
+        .contact-delete-header {
+          padding: 20px 24px 14px;
+          border-bottom: 1px solid var(--ats-border);
+        }
+        .contact-delete-body {
+          padding: 18px 24px;
+        }
+        .contact-delete-text {
+          margin: 0 0 8px;
+          color: var(--ats-primary);
+          font-size: 15px;
+          line-height: 1.5;
+        }
+        .contact-delete-subtext {
+          margin: 0;
+          color: var(--ats-secondary);
+          font-size: 13px;
+          line-height: 1.5;
+        }
+        .contact-delete-footer {
+          display: flex;
+          justify-content: flex-end;
+          gap: 12px;
+          padding: 16px 24px 20px;
+          border-top: 1px solid var(--ats-border);
+        }
+        .contact-delete-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-family: 'Inter', sans-serif;
+          font-size: 14px;
+          font-weight: 600;
+          color: #ffffff;
+          background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+          border: none;
+          border-radius: 8px;
+          padding: 12px 20px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .contact-delete-btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 8px 18px rgba(220,38,38,0.24);
+        }
+        .contact-delete-btn:disabled {
+          opacity: 0.65;
+          cursor: not-allowed;
+        }
 
         .t-badge {
           display: inline-block; padding: 2px 8px; border-radius: 6px;
@@ -840,6 +1060,18 @@ const CustomerDetail = () => {
         .t-source.internal { background: rgba(124,58,237,0.1); color: #7c3aed; }
         .t-link { color: #2563eb; text-decoration: none; font-weight: 500; font-size: 12px; }
         .t-link:hover { text-decoration: underline; }
+        .table-link-btn {
+          background: none;
+          border: none;
+          padding: 0;
+          color: #2563eb;
+          font-weight: 500;
+          font-size: 12px;
+          font-family: 'Inter', sans-serif;
+          cursor: pointer;
+          text-decoration: none;
+        }
+        .table-link-btn:hover { text-decoration: underline; }
 
         /* ── Pagination ── */
         .pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 4px 0; font-family: 'Inter', sans-serif; }

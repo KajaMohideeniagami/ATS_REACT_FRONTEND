@@ -21,6 +21,17 @@ export const addDemand = async (demandData) => {
   }
 };
 
+export const updateDemand = async (demandData) => {
+  try {
+    const response = await api.post(API_ENDPOINTS.UPDATE_DEMAND, demandData);
+    console.log('Update Demand Response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Update Demand Error:', error);
+    throw error;
+  }
+};
+
 export const extractJD = async (jobDescription) => {
   try {
     const response = await api.post(API_ENDPOINTS.DEMAND_EXTRACT, { job_description: jobDescription });
@@ -52,6 +63,22 @@ export const getDemandDetails = async (customerId, demandId) => {
     return response.data;
   } catch (error) {
     console.error('Demand Details Error:', error);
+    throw error;
+  }
+};
+
+export const getDemandDownloadUrl = async (demandId, fileType = 'IQ') => {
+  try {
+    const response = await api.get(API_ENDPOINTS.DEMAND_DOWNLOAD, {
+      params: {
+        demand_id: demandId,
+        file_type: fileType,
+      },
+    });
+    console.log('Demand Download Response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Demand Download Error:', error);
     throw error;
   }
 };

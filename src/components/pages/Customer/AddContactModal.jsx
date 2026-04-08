@@ -1,17 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { addContact } from '../../../services/contactService';
+import { addContact, updateContact } from '../../../services/contactService';
 import { toast } from '../../Toast';
 
-const AddContactModal = ({ isOpen, onClose, onSuccess, customerId }) => {
+const emptyForm = {
+  CONTACT_NAME: '',
+  CONTACT_NO:   '',
+  EMAIL_ID:     '',
+  DESIGNATION:  '',
+};
+
+const getContactId = (contact) =>
+  contact?.customer_contact_id ||
+  contact?.CUSTOMER_CONTACT_ID ||
+  contact?.contact_id ||
+  contact?.CONTACT_ID ||
+  null;
+
+const AddContactModal = ({ isOpen, onClose, onSuccess, customerId, editContact = null }) => {
   const [formData, setFormData] = useState({
-    CONTACT_NAME: '',
-    CONTACT_NO:   '',
-    EMAIL_ID:     '',
-    DESIGNATION:  '',
+    ...emptyForm,
   });
   const [errors,  setErrors]  = useState({});
   const [loading, setLoading] = useState(false);
+  const isEditMode = Boolean(getContactId(editContact));
 
   // Close on Escape key
   useEffect(() => {
@@ -26,8 +38,26 @@ const AddContactModal = ({ isOpen, onClose, onSuccess, customerId }) => {
     return () => { document.body.style.overflow = ''; };
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (isEditMode) {
+      setFormData({
+        CONTACT_NAME: editContact.contact_name || '',
+        CONTACT_NO:   editContact.contact_no || '',
+        EMAIL_ID:     editContact.email || editContact.email_id || '',
+        DESIGNATION:  editContact.designation || '',
+      });
+      setErrors({});
+      return;
+    }
+
+    setFormData({ ...emptyForm });
+    setErrors({});
+  }, [editContact, isEditMode, isOpen]);
+
   const resetForm = () => {
-    setFormData({ CONTACT_NAME: '', CONTACT_NO: '', EMAIL_ID: '', DESIGNATION: '' });
+    setFormData({ ...emptyForm });
     setErrors({});
   };
 
@@ -55,7 +85,7 @@ const AddContactModal = ({ isOpen, onClose, onSuccess, customerId }) => {
 
     setLoading(true);
     try {
-      const payload = {
+      const basePayload = {
         customer_id:  customerId,
         contact_name: formData.CONTACT_NAME.trim(),
         contact_no:   formData.CONTACT_NO.trim()   || null,
@@ -63,18 +93,27 @@ const AddContactModal = ({ isOpen, onClose, onSuccess, customerId }) => {
         designation:  formData.DESIGNATION.trim()   || null,
       };
 
-      const response = await addContact(payload);
+      const payload = isEditMode
+        ? {
+            ...basePayload,
+            customer_contact_id: getContactId(editContact),
+          }
+        : basePayload;
+
+      const response = isEditMode
+        ? await updateContact(payload)
+        : await addContact(payload);
 
       if (response.success) {
-        toast.success('Contact added successfully!');
+        toast.success(isEditMode ? 'Contact updated successfully!' : 'Contact added successfully!');
         resetForm();
         onClose();
-        if (onSuccess) onSuccess(); // Refresh contacts list
+        if (onSuccess) onSuccess();
       } else {
-        toast.error(response.message || 'Failed to add contact.');
+        toast.error(response.message || `Failed to ${isEditMode ? 'update' : 'add'} contact.`);
       }
     } catch (error) {
-      const msg = error.response?.data?.message || 'Failed to add contact. Please try again.';
+      const msg = error.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'add'} contact. Please try again.`;
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -93,7 +132,7 @@ const AddContactModal = ({ isOpen, onClose, onSuccess, customerId }) => {
 
         {/* Header */}
         <div className="modal-header">
-          <h2 className="ats-heading-2">Add Contact</h2>
+          <h2 className="ats-heading-2">{isEditMode ? 'Edit Contact' : 'Add Contact'}</h2>
           <button className="modal-close-btn" onClick={handleClose} aria-label="Close">
             <X size={18} />
           </button>
@@ -173,7 +212,7 @@ const AddContactModal = ({ isOpen, onClose, onSuccess, customerId }) => {
             className="btn-primary"
             disabled={loading}
           >
-            {loading ? 'Adding...' : 'Add Contact'}
+            {loading ? (isEditMode ? 'Updating...' : 'Adding...') : (isEditMode ? 'Update Contact' : 'Add Contact')}
           </button>
         </div>
 

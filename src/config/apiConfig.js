@@ -1,4 +1,6 @@
-export const API_BASE_URL = (process.env.REACT_APP_API_BASE_URL || '').replace(/\/$/, '');
+export const API_BASE_URL = (
+  process.env.REACT_APP_API_BASE_URL || 'https://oracleapex.com/ords/iagami_ops'
+).replace(/\/$/, '');
 
 export const API_ENDPOINTS = Object.freeze({
   DASHBOARD: '/customers/dashboard',
@@ -7,9 +9,13 @@ export const API_ENDPOINTS = Object.freeze({
   ADD_CUSTOMER: '/addcustomers/addcustomer',
   CUSTOMER_DETAILS: '/customers_details/details/',
   ADD_CONTACT: '/contacts_api/add',
+  UPDATE_CONTACT: '/contacts_api/update',
+  DELETE_CONTACT: '/contacts_api/delete',
   ADD_DEMAND: '/demands_api/add',
+  UPDATE_DEMAND: '/demands_api/update',
   DEMAND_EXTRACT: '/demands_api/extract',
   DEMAND_UPLOAD: '/demands_api/upload',
+  DEMAND_DOWNLOAD: '/demands_api/download',
   LOGIN: '/auth/login',
   ADD_PROFILE: '/addprofile/add',
   DEMAND_DETAILS: '/demands_api/details',
@@ -19,6 +25,7 @@ export const API_ENDPOINTS = Object.freeze({
   PROFILE_STATUS_UPDATE: '/profile-status/update',
   DEMAND_REPORT_CUSTOMERS: '/lovs/customers',
   DEMAND_REPORT: '/reports/demandreports',
+  SEND_VENDOR_EMAIL: '/vendor-email/send',
 });
 
 export const LOV_ENDPOINTS = Object.freeze({

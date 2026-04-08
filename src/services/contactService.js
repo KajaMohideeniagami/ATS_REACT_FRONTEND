@@ -20,3 +20,14 @@ export const addContact = async (contactData) => {
     throw error;
   }
 };
+
+export const updateContact = async (contactData) => {
+  const response = await api.post(API_ENDPOINTS.UPDATE_CONTACT, contactData);
+  return response.data;
+};
+
+export const deleteContact = async (contactData) => {
+  const response = await api.post(API_ENDPOINTS.DELETE_CONTACT, contactData);
+  return response.data;
+};
+
