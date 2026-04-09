@@ -240,8 +240,55 @@ export const getExecutiveDashboardDemandTypes = async () => {
 };
 
 export const getExecutiveDashboardData = async (filters = {}) => {
-  const commonParams = buildParams(filters);
-  const analysisParams = buildParams({
+  const [summaryData, openDemandsData, analysisData] = await Promise.all([
+    getExecutiveDashboardSummaryData(filters),
+    getExecutiveDashboardOpenDemandsData(filters),
+    getExecutiveDashboardAnalysisData(filters),
+  ]);
+
+  return {
+    ...summaryData,
+    ...openDemandsData,
+    ...analysisData,
+    taPerformanceReport: [],
+    taScoreReport: [],
+  };
+};
+
+export const getExecutiveDashboardSummaryData = async (filters = {}) => {
+  const response = await executiveDashboardApi.get(API_ENDPOINTS.EXECUTIVE_DASHBOARD_SUMMARY, {
+    params: buildParams(filters),
+  });
+
+  const payload = response.data || {};
+  const rawTaPerformance = payload.ta_performance ?? payload.TA_PERFORMANCE;
+  const taPerformanceRow = Array.isArray(rawTaPerformance)
+    ? rawTaPerformance[0]
+    : rawTaPerformance;
+
+  return {
+    overallMetrics: extractList(payload.overall_metrics ?? payload.OVERALL_METRICS).map(normalizeMetricRow),
+    currentMonthMetrics: extractList(payload.current_month_metrics ?? payload.CURRENT_MONTH_METRICS).map(normalizeMetricRow),
+    currentWeekMetrics: extractList(payload.current_week_metrics ?? payload.CURRENT_WEEK_METRICS).map(normalizeMetricRow),
+    demandAgeingMetrics: extractList(payload.demand_ageing_metrics ?? payload.DEMAND_AGEING_METRICS).map(normalizeAgeingRow),
+    taPerformance: normalizeTaPerformance(taPerformanceRow ?? {}),
+  };
+};
+
+export const getExecutiveDashboardOpenDemandsData = async (filters = {}) => {
+  const response = await executiveDashboardApi.get(API_ENDPOINTS.EXECUTIVE_DASHBOARD_OPEN_DEMANDS, {
+    params: buildParams(filters),
+  });
+
+  const payload = response.data || {};
+
+  return {
+    openDemandsSummary: extractList(payload.open_demands_summary ?? payload.OPEN_DEMANDS_SUMMARY).map(normalizeOpenDemandSummaryRow),
+  };
+};
+
+export const getExecutiveDashboardAnalysisData = async (filters = {}) => {
+  const params = buildParams({
     customer: filters.customer,
     demandType: filters.demandType,
     year: filters.year,
@@ -253,38 +300,21 @@ export const getExecutiveDashboardData = async (filters = {}) => {
     analysisQuarter: filters.analysisQuarter,
   });
 
-  const [summaryResponse, openDemandsResponse, analysisResponse] = await Promise.all([
-    executiveDashboardApi.get(API_ENDPOINTS.EXECUTIVE_DASHBOARD_SUMMARY, {
-      params: commonParams,
-    }),
-    executiveDashboardApi.get(API_ENDPOINTS.EXECUTIVE_DASHBOARD_OPEN_DEMANDS, {
-      params: commonParams,
-    }),
-    executiveDashboardApi.get(API_ENDPOINTS.EXECUTIVE_DASHBOARD_ANALYSIS, {
-      params: analysisParams,
-    }),
-  ]);
+  const response = await executiveDashboardApi.get(API_ENDPOINTS.EXECUTIVE_DASHBOARD_ANALYSIS, {
+    params,
+  });
 
-  const summaryPayload = summaryResponse.data || {};
-  const openDemandsPayload = openDemandsResponse.data || {};
-  const analysisPayload = analysisResponse.data || {};
-  const rawTaPerformance = summaryPayload.ta_performance ?? summaryPayload.TA_PERFORMANCE;
-  const taPerformanceRow = Array.isArray(rawTaPerformance)
-    ? rawTaPerformance[0]
-    : rawTaPerformance;
+  const payload = response.data || {};
 
   return {
-    overallMetrics: extractList(summaryPayload.overall_metrics ?? summaryPayload.OVERALL_METRICS).map(normalizeMetricRow),
-    currentMonthMetrics: extractList(summaryPayload.current_month_metrics ?? summaryPayload.CURRENT_MONTH_METRICS).map(normalizeMetricRow),
-    currentWeekMetrics: extractList(summaryPayload.current_week_metrics ?? summaryPayload.CURRENT_WEEK_METRICS).map(normalizeMetricRow),
-    demandAgeingMetrics: extractList(summaryPayload.demand_ageing_metrics ?? summaryPayload.DEMAND_AGEING_METRICS).map(normalizeAgeingRow),
-    openDemandsSummary: extractList(openDemandsPayload.open_demands_summary ?? openDemandsPayload.OPEN_DEMANDS_SUMMARY).map(normalizeOpenDemandSummaryRow),
-    taPerformance: normalizeTaPerformance(taPerformanceRow ?? {}),
-    monthlyAnalysis: extractList(analysisPayload.monthly_analysis ?? analysisPayload.MONTHLY_ANALYSIS).map(normalizeAnalysisRow),
-    weeklyAnalysis: extractList(analysisPayload.weekly_analysis ?? analysisPayload.WEEKLY_ANALYSIS).map(normalizeAnalysisRow),
-    quarterlyAnalysis: extractList(analysisPayload.quarterly_analysis ?? analysisPayload.QUARTERLY_ANALYSIS).map(normalizeAnalysisRow),
-    taPerformanceReport: [],
-    taScoreReport: [],
+    availableYears: extractList(payload.available_years ?? payload.AVAILABLE_YEARS).map(normalizeOption).filter(Boolean),
+    availableMonths: extractList(payload.available_months ?? payload.AVAILABLE_MONTHS).map(normalizeOption).filter(Boolean),
+    availableWeekMonths: extractList(payload.available_week_months ?? payload.AVAILABLE_WEEK_MONTHS).map(normalizeOption).filter(Boolean),
+    availableWeeks: extractList(payload.available_weeks ?? payload.AVAILABLE_WEEKS).map(normalizeOption).filter(Boolean),
+    availableQuarters: extractList(payload.available_quarters ?? payload.AVAILABLE_QUARTERS).map(normalizeOption).filter(Boolean),
+    monthlyAnalysis: extractList(payload.monthly_analysis ?? payload.MONTHLY_ANALYSIS).map(normalizeAnalysisRow),
+    weeklyAnalysis: extractList(payload.weekly_analysis ?? payload.WEEKLY_ANALYSIS).map(normalizeAnalysisRow),
+    quarterlyAnalysis: extractList(payload.quarterly_analysis ?? payload.QUARTERLY_ANALYSIS).map(normalizeAnalysisRow),
   };
 };
 

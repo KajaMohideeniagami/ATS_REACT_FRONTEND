@@ -1,16 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Filter, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Filter, RefreshCw } from 'lucide-react';
 import { toast } from '../../toast/index';
 import {
   getExecutiveDashboardCustomers,
   getExecutiveDashboardDemandTypes,
-  getExecutiveDashboardData,
+  getExecutiveDashboardAnalysisData,
+  getExecutiveDashboardOpenDemandsData,
+  getExecutiveDashboardSummaryData,
   getExecutiveDashboardTaData,
 } from '../../../services/executiveDashboardService';
 import '../../../global.css';
 
 const DATA_TAB = 'data';
 const TA_TAB = 'ta';
+const OPEN_DEMANDS_PAGE_SIZE = 15;
 const MONTH_OPTIONS = [
   { value: '01', label: 'January', key: 'jan' },
   { value: '02', label: 'February', key: 'feb' },
@@ -40,12 +43,22 @@ const QUARTER_OPTIONS = [
   { value: '4', label: 'Q4', key: 'q4' },
 ];
 
+const buildSingleYearOption = (yearValue) => [{
+  value: String(yearValue || new Date().getFullYear()),
+  label: String(yearValue || new Date().getFullYear()),
+}];
+
 const EMPTY_EXECUTIVE_DATA = {
   overallMetrics: [],
   currentMonthMetrics: [],
   currentWeekMetrics: [],
   demandAgeingMetrics: [],
   openDemandsSummary: [],
+  availableYears: [],
+  availableMonths: [],
+  availableWeekMonths: [],
+  availableWeeks: [],
+  availableQuarters: [],
   monthlyAnalysis: [],
   weeklyAnalysis: [],
   quarterlyAnalysis: [],
@@ -59,6 +72,20 @@ const EMPTY_EXECUTIVE_DATA = {
   },
   taPerformanceReport: [],
   taScoreReport: [],
+};
+
+const EMPTY_SECTION_LOADING = {
+  summary: true,
+  openDemands: true,
+  analysis: true,
+  ta: false,
+};
+
+const EMPTY_SECTION_ERRORS = {
+  summary: '',
+  openDemands: '',
+  analysis: '',
+  ta: '',
 };
 
 const buildYearOptions = () => {
@@ -89,8 +116,12 @@ const formatMetricLabel = (value) => METRIC_LABELS[value] || value || '-';
 
 const metricValue = (value) => Number(value ?? 0).toLocaleString('en-IN');
 const safeText = (value) => String(value ?? '').trim() || '-';
+const renderSummaryValue = (value) => {
+  const numericValue = Number(value ?? 0);
+  return numericValue === 0 ? '' : metricValue(numericValue);
+};
 
-const ReportTable = ({ title, columns, rows, accentClass = '' }) => (
+const ReportTable = ({ title, columns, rows, accentClass = '', loading = false, errorMessage = '' }) => (
   <section className={`executive-report-card ${accentClass}`.trim()}>
     <div className="executive-report-card-header">
       <h3>{title}</h3>
@@ -106,7 +137,19 @@ const ReportTable = ({ title, columns, rows, accentClass = '' }) => (
           </tr>
         </thead>
         <tbody>
-          {rows.length === 0 ? (
+          {loading ? (
+            <tr>
+              <td className="executive-report-empty" colSpan={columns.length}>
+                Loading...
+              </td>
+            </tr>
+          ) : errorMessage ? (
+            <tr>
+              <td className="executive-report-empty executive-report-error" colSpan={columns.length}>
+                {errorMessage}
+              </td>
+            </tr>
+          ) : rows.length === 0 ? (
             <tr>
               <td className="executive-report-empty" colSpan={columns.length}>
                 No data available for the selected filters.
@@ -129,50 +172,218 @@ const ReportTable = ({ title, columns, rows, accentClass = '' }) => (
   </section>
 );
 
-const OpenDemandSummaryTable = ({ rows }) => (
-  <section className="executive-report-card accent-emerald executive-report-card-full">
-    <div className="executive-report-card-header">
-      <h3>Demand - Profile Summary (Open Demands)</h3>
-    </div>
+const MultiSelectDropdown = ({
+  label,
+  options,
+  selectedValues,
+  onChange,
+  placeholder,
+}) => {
+  const [open, setOpen] = useState(false);
 
-    <div className="executive-report-table-wrap">
-      <table className="executive-report-table">
-        <thead>
-          <tr>
-            <th>Open Demands List</th>
-            <th>No Of Position</th>
-            <th>No Of Profiles Submitted</th>
-            <th>Profile Status</th>
-            <th>Profiles In Pipeline</th>
-            <th>Total Profiles Except Pipeline</th>
-            <th>Profile Status Ageing</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 ? (
-            <tr>
-              <td className="executive-report-empty" colSpan={7}>
-                No data available for the selected filters.
-              </td>
-            </tr>
-          ) : (
-            rows.map((row, index) => (
-              <tr key={`open-demand-${index}`}>
-                <td className="executive-demand-title-cell">{safeText(row.open_demands_list)}</td>
-                <td>{metricValue(row.no_of_position)}</td>
-                <td>{metricValue(row.no_of_profiles)}</td>
-                <td>{safeText(row.profile_status)}</td>
-                <td>{metricValue(row.profiles_in_pipeline)}</td>
-                <td>{metricValue(row.total_profiles_except_pipeline)}</td>
-                <td>{metricValue(row.ageing_days)}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+  const selectedLabels = options
+    .filter((option) => selectedValues.includes(option.value))
+    .map((option) => option.label);
+
+  const displayText = selectedLabels.length ? selectedLabels.join(', ') : placeholder;
+
+  const toggleValue = (value) => {
+    if (selectedValues.includes(value)) {
+      onChange(selectedValues.filter((item) => item !== value));
+      return;
+    }
+
+    onChange([...selectedValues, value]);
+  };
+
+  return (
+    <div className="executive-analysis-filter">
+      <label className="form-label">{label}</label>
+      <div className={`executive-multiselect ${open ? 'open' : ''}`}>
+        <button
+          type="button"
+          className="executive-multiselect-trigger"
+          onClick={() => setOpen((previous) => !previous)}
+        >
+          <span className="executive-multiselect-text">{displayText}</span>
+          <span className="executive-multiselect-caret">▾</span>
+        </button>
+
+        {open ? (
+          <div className="executive-multiselect-menu">
+            {options.map((option) => (
+              <label key={option.value} className="executive-multiselect-option">
+                <input
+                  type="checkbox"
+                  checked={selectedValues.includes(option.value)}
+                  onChange={() => toggleValue(option.value)}
+                />
+                <span>{option.label}</span>
+              </label>
+            ))}
+          </div>
+        ) : null}
+      </div>
     </div>
-  </section>
-);
+  );
+};
+
+const groupOpenDemandRows = (rows) => {
+  const groups = [];
+  let currentGroup = null;
+
+  rows.forEach((row, index) => {
+    if (!currentGroup || currentGroup.open_demands_list !== row.open_demands_list) {
+      currentGroup = {
+        id: `${row.open_demands_list}-${index}`,
+        open_demands_list: row.open_demands_list,
+        no_of_position: row.no_of_position,
+        profiles_in_pipeline: row.profiles_in_pipeline,
+        details: [],
+      };
+      groups.push(currentGroup);
+    }
+
+    currentGroup.details.push({
+      no_of_profiles: row.no_of_profiles,
+      profile_status: row.profile_status,
+      ageing_days: row.ageing_days,
+    });
+  });
+
+  return groups;
+};
+
+const OpenDemandSummaryTable = ({
+  rows,
+  currentPage,
+  onPageChange,
+  loading = false,
+  errorMessage = '',
+}) => {
+  const groupedRows = groupOpenDemandRows(rows);
+  const totalRecords = groupedRows.length;
+  const totalPages = Math.max(1, Math.ceil(totalRecords / OPEN_DEMANDS_PAGE_SIZE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pageStartIndex = totalRecords === 0 ? 0 : (safeCurrentPage - 1) * OPEN_DEMANDS_PAGE_SIZE;
+  const pageEndIndex = Math.min(pageStartIndex + OPEN_DEMANDS_PAGE_SIZE, totalRecords);
+  const paginatedGroups = groupedRows.slice(pageStartIndex, pageEndIndex);
+  const paginationSummary = totalRecords === 0 ? '0 - 0 of 0' : `${pageStartIndex + 1} - ${pageEndIndex} of ${totalRecords}`;
+
+  const renderPaginationBar = () => (
+    <div className="executive-open-demand-pagination-bar">
+      <span className="executive-open-demand-pagination-text">
+        {paginationSummary}
+      </span>
+      <div className="executive-open-demand-pagination-actions">
+        <button
+          type="button"
+          className="executive-open-demand-page-button"
+          onClick={() => onPageChange(Math.max(1, safeCurrentPage - 1))}
+          disabled={safeCurrentPage === 1 || totalRecords === 0}
+          aria-label="Previous page"
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <button
+          type="button"
+          className="executive-open-demand-page-button"
+          onClick={() => onPageChange(Math.min(totalPages, safeCurrentPage + 1))}
+          disabled={safeCurrentPage === totalPages || totalRecords === 0}
+          aria-label="Next page"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <section className="executive-report-card accent-emerald executive-report-card-full">
+      <div className="executive-report-card-header">
+        <h3>Demand - Profile Summary (Open Demands)</h3>
+      </div>
+
+      {renderPaginationBar()}
+
+      <div className="executive-report-table-wrap">
+        <table className="executive-report-table executive-open-demand-table">
+          <tbody>
+            {loading ? (
+              <tr>
+                <td className="executive-report-empty" colSpan={5}>
+                  Loading...
+                </td>
+              </tr>
+            ) : errorMessage ? (
+              <tr>
+                <td className="executive-report-empty executive-report-error" colSpan={5}>
+                  {errorMessage}
+                </td>
+              </tr>
+            ) : groupedRows.length === 0 ? (
+              <tr>
+                <td className="executive-report-empty" colSpan={5}>
+                  No data available for the selected filters.
+                </td>
+              </tr>
+            ) : (
+              paginatedGroups.map((group) => (
+                <React.Fragment key={group.id}>
+                  <tr>
+                    <td className="executive-demand-group-title" colSpan={5}>
+                      {safeText(group.open_demands_list)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>No Of Profiles Submitted</th>
+                    <th>Profile Status</th>
+                    <th>Profile Status Ageing</th>
+                    <th>No Of Position</th>
+                    <th>Profiles In Pipeline</th>
+                  </tr>
+                  {group.details.length > 0 ? (
+                    group.details.map((detail, detailIndex) => (
+                      <tr key={`${group.id}-${detailIndex}`}>
+                        <td className="executive-open-demand-count-cell">
+                          {renderSummaryValue(detail.no_of_profiles)}
+                        </td>
+                        <td className="executive-open-demand-status-cell">
+                          {safeText(detail.profile_status)}
+                        </td>
+                        <td className="executive-open-demand-ageing-cell">
+                          {metricValue(detail.ageing_days)}
+                        </td>
+                        {detailIndex === 0 ? (
+                          <td rowSpan={group.details.length} className="executive-open-demand-merged-cell">
+                            {renderSummaryValue(group.no_of_position)}
+                          </td>
+                        ) : null}
+                        {detailIndex === 0 ? (
+                          <td rowSpan={group.details.length} className="executive-open-demand-merged-cell">
+                            {renderSummaryValue(group.profiles_in_pipeline)}
+                          </td>
+                        ) : null}
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td className="executive-report-empty" colSpan={5}>
+                        No profile data available.
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {renderPaginationBar()}
+    </section>
+  );
+};
 
 const AnalysisTableCard = ({
   title,
@@ -180,6 +391,8 @@ const AnalysisTableCard = ({
   filters,
   columns,
   rows,
+  loading = false,
+  errorMessage = '',
 }) => (
   <section className={`executive-report-card ${accentClass} executive-analysis-card`.trim()}>
     <div className="executive-report-card-header">
@@ -200,7 +413,19 @@ const AnalysisTableCard = ({
           </tr>
         </thead>
         <tbody>
-          {rows.length === 0 ? (
+          {loading ? (
+            <tr>
+              <td className="executive-report-empty" colSpan={columns.length}>
+                Loading...
+              </td>
+            </tr>
+          ) : errorMessage ? (
+            <tr>
+              <td className="executive-report-empty executive-report-error" colSpan={columns.length}>
+                {errorMessage}
+              </td>
+            </tr>
+          ) : rows.length === 0 ? (
             <tr>
               <td className="executive-report-empty" colSpan={columns.length}>
                 No data available for the selected filters.
@@ -226,9 +451,6 @@ const AnalysisTableCard = ({
 const ExecutiveDashboardPage = () => {
   const [activeTab, setActiveTab] = useState(DATA_TAB);
   const [loadingFilters, setLoadingFilters] = useState(true);
-  const [loadingData, setLoadingData] = useState(true);
-  const [error, setError] = useState('');
-
   const [customerOptions, setCustomerOptions] = useState([]);
   const [demandTypeOptions, setDemandTypeOptions] = useState([]);
   const [filters, setFilters] = useState({
@@ -238,19 +460,19 @@ const ExecutiveDashboardPage = () => {
   });
   const [analysisFilters, setAnalysisFilters] = useState({
     monthYear: String(new Date().getFullYear()),
-    month: getCurrentMonthValue(),
+    compareMonths: [],
     weekYear: String(new Date().getFullYear()),
     weekMonth: getCurrentMonthValue(),
-    week: 'All',
+    compareWeeks: [],
     quarterYear: String(new Date().getFullYear()),
-    quarter: getCurrentQuarterValue(),
+    compareQuarters: [],
   });
   const [dashboardData, setDashboardData] = useState(EMPTY_EXECUTIVE_DATA);
+  const [sectionLoading, setSectionLoading] = useState(EMPTY_SECTION_LOADING);
+  const [sectionErrors, setSectionErrors] = useState(EMPTY_SECTION_ERRORS);
+  const [openDemandPage, setOpenDemandPage] = useState(1);
 
   const yearOptions = useMemo(buildYearOptions, []);
-  const activeRequestKey = activeTab === DATA_TAB
-    ? JSON.stringify({ filters, analysisFilters, activeTab })
-    : JSON.stringify({ filters, activeTab });
 
   useEffect(() => {
     const loadFilters = async () => {
@@ -276,52 +498,153 @@ const ExecutiveDashboardPage = () => {
   }, []);
 
   useEffect(() => {
-    const loadDashboard = async () => {
+    if (activeTab !== DATA_TAB) return undefined;
+
+    let cancelled = false;
+
+    const loadSummarySection = async () => {
       try {
-        setLoadingData(true);
-        setError('');
-        if (activeTab === DATA_TAB) {
-          const data = await getExecutiveDashboardData({
-            ...filters,
-            analysisMonthYear: analysisFilters.monthYear,
-            analysisWeekYear: analysisFilters.weekYear,
-            analysisWeekMonth: analysisFilters.weekMonth,
-            analysisWeek: analysisFilters.week,
-            analysisQuarterYear: analysisFilters.quarterYear,
-            analysisQuarter: analysisFilters.quarter,
-          });
+        setSectionLoading((previous) => ({ ...previous, summary: true }));
+        setSectionErrors((previous) => ({ ...previous, summary: '' }));
 
-          setDashboardData((previous) => ({
-            ...previous,
-            ...data,
-          }));
-        } else {
-          const data = await getExecutiveDashboardTaData(filters);
+        const data = await getExecutiveDashboardSummaryData(filters);
+        if (cancelled) return;
 
-          setDashboardData((previous) => ({
-            ...previous,
-            ...data,
-          }));
-        }
+        setDashboardData((previous) => ({
+          ...previous,
+          ...data,
+        }));
       } catch (fetchError) {
-        console.error('Executive dashboard data load error:', fetchError);
-        setError(
-          activeTab === DATA_TAB
-            ? 'Failed to load executive dashboard data.'
-            : 'Failed to load TA performance data.'
-        );
-        toast.error(
-          activeTab === DATA_TAB
-            ? 'Failed to load executive dashboard data.'
-            : 'Failed to load TA performance data.'
-        );
+        if (cancelled) return;
+        console.error('Executive dashboard summary load error:', fetchError);
+        setSectionErrors((previous) => ({ ...previous, summary: 'Failed to load summary data.' }));
       } finally {
-        setLoadingData(false);
+        if (!cancelled) {
+          setSectionLoading((previous) => ({ ...previous, summary: false }));
+        }
       }
     };
 
-    loadDashboard();
-  }, [activeRequestKey]);
+    const loadOpenDemandSection = async () => {
+      try {
+        setSectionLoading((previous) => ({ ...previous, openDemands: true }));
+        setSectionErrors((previous) => ({ ...previous, openDemands: '' }));
+
+        const data = await getExecutiveDashboardOpenDemandsData(filters);
+        if (cancelled) return;
+
+        setDashboardData((previous) => ({
+          ...previous,
+          ...data,
+        }));
+      } catch (fetchError) {
+        if (cancelled) return;
+        console.error('Executive dashboard open demands load error:', fetchError);
+        setSectionErrors((previous) => ({ ...previous, openDemands: 'Failed to load open demand data.' }));
+      } finally {
+        if (!cancelled) {
+          setSectionLoading((previous) => ({ ...previous, openDemands: false }));
+        }
+      }
+    };
+
+    loadSummarySection();
+    loadOpenDemandSection();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, filters.customer, filters.demandType, filters.year]);
+
+  useEffect(() => {
+    if (activeTab !== DATA_TAB) return undefined;
+
+    let cancelled = false;
+
+    const loadAnalysisSection = async () => {
+      try {
+        setSectionLoading((previous) => ({ ...previous, analysis: true }));
+        setSectionErrors((previous) => ({ ...previous, analysis: '' }));
+
+        const data = await getExecutiveDashboardAnalysisData({
+          ...filters,
+          analysisMonthYear: analysisFilters.monthYear,
+          analysisWeekYear: analysisFilters.weekYear,
+          analysisWeekMonth: analysisFilters.weekMonth,
+          analysisQuarterYear: analysisFilters.quarterYear,
+        });
+
+        if (cancelled) return;
+
+        setDashboardData((previous) => ({
+          ...previous,
+          ...data,
+        }));
+      } catch (fetchError) {
+        if (cancelled) return;
+        console.error('Executive dashboard analysis load error:', fetchError);
+        setSectionErrors((previous) => ({ ...previous, analysis: 'Failed to load analysis data.' }));
+      } finally {
+        if (!cancelled) {
+          setSectionLoading((previous) => ({ ...previous, analysis: false }));
+        }
+      }
+    };
+
+    loadAnalysisSection();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activeTab,
+    filters.customer,
+    filters.demandType,
+    filters.year,
+    analysisFilters.monthYear,
+    analysisFilters.weekYear,
+    analysisFilters.weekMonth,
+    analysisFilters.quarterYear,
+  ]);
+
+  useEffect(() => {
+    if (activeTab !== TA_TAB) return undefined;
+
+    let cancelled = false;
+
+    const loadTaSection = async () => {
+      try {
+        setSectionLoading((previous) => ({ ...previous, ta: true }));
+        setSectionErrors((previous) => ({ ...previous, ta: '' }));
+
+        const data = await getExecutiveDashboardTaData(filters);
+        if (cancelled) return;
+
+        setDashboardData((previous) => ({
+          ...previous,
+          ...data,
+        }));
+      } catch (fetchError) {
+        if (cancelled) return;
+        console.error('Executive dashboard TA load error:', fetchError);
+        setSectionErrors((previous) => ({ ...previous, ta: 'Failed to load TA performance data.' }));
+      } finally {
+        if (!cancelled) {
+          setSectionLoading((previous) => ({ ...previous, ta: false }));
+        }
+      }
+    };
+
+    loadTaSection();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, filters.customer, filters.demandType, filters.year]);
+
+  useEffect(() => {
+    setOpenDemandPage(1);
+  }, [dashboardData.openDemandsSummary, activeTab]);
 
   const handleFilterChange = (key, value) => {
     setFilters((previous) => ({
@@ -345,12 +668,12 @@ const ExecutiveDashboardPage = () => {
     });
     setAnalysisFilters({
       monthYear: String(new Date().getFullYear()),
-      month: getCurrentMonthValue(),
+      compareMonths: [],
       weekYear: String(new Date().getFullYear()),
       weekMonth: getCurrentMonthValue(),
-      week: 'All',
+      compareWeeks: [],
       quarterYear: String(new Date().getFullYear()),
-      quarter: getCurrentQuarterValue(),
+      compareQuarters: [],
     });
     toast.success('Executive dashboard filters reset.');
   };
@@ -420,19 +743,177 @@ const ExecutiveDashboardPage = () => {
     [dashboardData.openDemandsSummary]
   );
 
-  const selectedMonthMeta = useMemo(
-    () => MONTH_OPTIONS.find((option) => option.value === analysisFilters.month) || MONTH_OPTIONS[0],
-    [analysisFilters.month]
+  const availableAnalysisYearOptions = useMemo(() => {
+    if (dashboardData.availableYears.length) return dashboardData.availableYears;
+    return yearOptions;
+  }, [dashboardData.availableYears, yearOptions]);
+
+  const availableMonthOptions = useMemo(() => {
+    if (dashboardData.availableMonths.length) {
+      return dashboardData.availableMonths.map((item) => {
+        const matched = MONTH_OPTIONS.find((option) => option.value === item.value);
+        return matched || { value: item.value, label: item.label, key: item.value };
+      });
+    }
+
+    const options = MONTH_OPTIONS.filter((option) =>
+      dashboardData.monthlyAnalysis.some((item) => Number(item[option.key] ?? 0) > 0)
+    );
+
+    return options.length ? options : MONTH_OPTIONS;
+  }, [dashboardData.availableMonths, dashboardData.monthlyAnalysis]);
+
+  const availableWeekMonthOptions = useMemo(() => {
+    if (dashboardData.availableWeekMonths.length) {
+      return dashboardData.availableWeekMonths.map((item) => {
+        const matched = MONTH_OPTIONS.find((option) => option.value === item.value);
+        return matched || { value: item.value, label: item.label, key: item.value };
+      });
+    }
+
+    const options = MONTH_OPTIONS.filter((option) =>
+      option.value === analysisFilters.weekMonth
+    );
+
+    return options.length ? options : MONTH_OPTIONS;
+  }, [analysisFilters.weekMonth, dashboardData.availableWeekMonths]);
+
+  const availableWeekOptions = useMemo(() => {
+    if (dashboardData.availableWeeks.length) {
+      return dashboardData.availableWeeks.map((item) => {
+        const matched = WEEK_OPTIONS.find((option) => option.value === item.value);
+        return matched || { value: item.value, label: item.label, key: `week${item.value}` };
+      });
+    }
+
+    const weekOptions = WEEK_OPTIONS.slice(1).filter((option) =>
+      dashboardData.weeklyAnalysis.some((item) => Number(item[option.key] ?? 0) > 0)
+    );
+
+    return weekOptions.length ? weekOptions : WEEK_OPTIONS.slice(1);
+  }, [dashboardData.availableWeeks, dashboardData.weeklyAnalysis]);
+
+  const availableQuarterOptions = useMemo(() => {
+    if (dashboardData.availableQuarters.length) {
+      return dashboardData.availableQuarters.map((item) => {
+        const matched = QUARTER_OPTIONS.find((option) => option.value === item.value);
+        return matched || { value: item.value, label: item.label, key: `q${item.value}` };
+      });
+    }
+
+    const options = QUARTER_OPTIONS.filter((option) =>
+      dashboardData.quarterlyAnalysis.some((item) => Number(item[option.key] ?? 0) > 0)
+    );
+
+    return options.length ? options : QUARTER_OPTIONS;
+  }, [dashboardData.availableQuarters, dashboardData.quarterlyAnalysis]);
+
+  const availableMonthYearOptions = availableAnalysisYearOptions;
+
+  const availableWeekYearOptions = availableAnalysisYearOptions;
+
+  const availableQuarterYearOptions = availableAnalysisYearOptions;
+
+  useEffect(() => {
+    if (!availableMonthYearOptions.some((option) => option.value === analysisFilters.monthYear)) {
+      setAnalysisFilters((previous) => ({
+        ...previous,
+        monthYear: availableMonthYearOptions[0]?.value ?? String(new Date().getFullYear()),
+      }));
+    }
+  }, [analysisFilters.monthYear, availableMonthYearOptions]);
+
+  useEffect(() => {
+    if (!availableWeekYearOptions.some((option) => option.value === analysisFilters.weekYear)) {
+      setAnalysisFilters((previous) => ({
+        ...previous,
+        weekYear: availableWeekYearOptions[0]?.value ?? String(new Date().getFullYear()),
+      }));
+    }
+  }, [analysisFilters.weekYear, availableWeekYearOptions]);
+
+  useEffect(() => {
+    if (!availableQuarterYearOptions.some((option) => option.value === analysisFilters.quarterYear)) {
+      setAnalysisFilters((previous) => ({
+        ...previous,
+        quarterYear: availableQuarterYearOptions[0]?.value ?? String(new Date().getFullYear()),
+      }));
+    }
+  }, [analysisFilters.quarterYear, availableQuarterYearOptions]);
+
+  useEffect(() => {
+    const filteredValues = analysisFilters.compareMonths.filter((value) =>
+      availableMonthOptions.some((option) => option.value === value)
+    );
+
+    if (filteredValues.length !== analysisFilters.compareMonths.length) {
+      setAnalysisFilters((previous) => ({
+        ...previous,
+        compareMonths: filteredValues,
+      }));
+    }
+  }, [analysisFilters.compareMonths, availableMonthOptions]);
+
+  useEffect(() => {
+    if (!availableWeekMonthOptions.some((option) => option.value === analysisFilters.weekMonth)) {
+      setAnalysisFilters((previous) => ({
+        ...previous,
+        weekMonth: availableWeekMonthOptions[0]?.value ?? getCurrentMonthValue(),
+      }));
+    }
+  }, [analysisFilters.weekMonth, availableWeekMonthOptions]);
+
+  useEffect(() => {
+    const filteredValues = analysisFilters.compareWeeks.filter((value) =>
+      availableWeekOptions.some((option) => option.value === value)
+    );
+
+    if (filteredValues.length !== analysisFilters.compareWeeks.length) {
+      setAnalysisFilters((previous) => ({
+        ...previous,
+        compareWeeks: filteredValues,
+      }));
+    }
+  }, [analysisFilters.compareWeeks, availableWeekOptions]);
+
+  useEffect(() => {
+    const filteredValues = analysisFilters.compareQuarters.filter((value) =>
+      availableQuarterOptions.some((option) => option.value === value)
+    );
+
+    if (filteredValues.length !== analysisFilters.compareQuarters.length) {
+      setAnalysisFilters((previous) => ({
+        ...previous,
+        compareQuarters: filteredValues,
+      }));
+    }
+  }, [analysisFilters.compareQuarters, availableQuarterOptions]);
+
+  const selectedMonthOptions = useMemo(
+    () => (
+      analysisFilters.compareMonths.length
+        ? availableMonthOptions.filter((option) => analysisFilters.compareMonths.includes(option.value))
+        : availableMonthOptions
+    ),
+    [analysisFilters.compareMonths, availableMonthOptions]
   );
 
-  const selectedWeekMeta = useMemo(
-    () => WEEK_OPTIONS.find((option) => option.value === analysisFilters.week) || WEEK_OPTIONS[0],
-    [analysisFilters.week]
+  const selectedWeekOptions = useMemo(
+    () => (
+      analysisFilters.compareWeeks.length
+        ? availableWeekOptions.filter((option) => analysisFilters.compareWeeks.includes(option.value))
+        : availableWeekOptions
+    ),
+    [analysisFilters.compareWeeks, availableWeekOptions]
   );
 
-  const selectedQuarterMeta = useMemo(
-    () => QUARTER_OPTIONS.find((option) => option.value === analysisFilters.quarter) || QUARTER_OPTIONS[0],
-    [analysisFilters.quarter]
+  const selectedQuarterOptions = useMemo(
+    () => (
+      analysisFilters.compareQuarters.length
+        ? availableQuarterOptions.filter((option) => analysisFilters.compareQuarters.includes(option.value))
+        : availableQuarterOptions
+    ),
+    [analysisFilters.compareQuarters, availableQuarterOptions]
   );
 
   const summaryPills = useMemo(() => {
@@ -495,79 +976,91 @@ const ExecutiveDashboardPage = () => {
 
   const monthlyAnalysisRows = useMemo(
     () =>
-      dashboardData.monthlyAnalysis.map((item) => ({
-        metric: formatMetricLabel(item.metric),
-        value: item[selectedMonthMeta.key] ?? 0,
-      })),
-    [dashboardData.monthlyAnalysis, selectedMonthMeta]
+      dashboardData.monthlyAnalysis.map((item) => {
+        const row = {
+          metric: formatMetricLabel(item.metric),
+        };
+
+        selectedMonthOptions.forEach((option) => {
+          row[option.value] = item[option.key] ?? 0;
+        });
+
+        return row;
+      }),
+    [dashboardData.monthlyAnalysis, selectedMonthOptions]
   );
 
   const weeklyAnalysisRows = useMemo(
     () =>
-      dashboardData.weeklyAnalysis.map((item) => ({
-        metric: formatMetricLabel(item.metric),
-        value:
-          selectedWeekMeta.value === 'All'
-            ? [item.week1, item.week2, item.week3, item.week4, item.week5].reduce((sum, current) => sum + Number(current || 0), 0)
-            : item[selectedWeekMeta.key] ?? 0,
-      })),
-    [dashboardData.weeklyAnalysis, selectedWeekMeta]
+      dashboardData.weeklyAnalysis.map((item) => {
+        const row = {
+          metric: formatMetricLabel(item.metric),
+        };
+
+        selectedWeekOptions.forEach((option) => {
+          row[option.value] = item[option.key] ?? 0;
+        });
+
+        return row;
+      }),
+    [dashboardData.weeklyAnalysis, selectedWeekOptions]
   );
 
   const quarterlyAnalysisRows = useMemo(
     () =>
-      dashboardData.quarterlyAnalysis.map((item) => ({
-        metric: formatMetricLabel(item.metric),
-        value: item[selectedQuarterMeta.key] ?? 0,
-      })),
-    [dashboardData.quarterlyAnalysis, selectedQuarterMeta]
+      dashboardData.quarterlyAnalysis.map((item) => {
+        const row = {
+          metric: formatMetricLabel(item.metric),
+        };
+
+        selectedQuarterOptions.forEach((option) => {
+          row[option.value] = item[option.key] ?? 0;
+        });
+
+        return row;
+      }),
+    [dashboardData.quarterlyAnalysis, selectedQuarterOptions]
   );
 
   const monthAnalysisColumns = useMemo(
     () => [
       { key: 'metric', label: 'Metric' },
-      { key: 'value', label: selectedMonthMeta.label.slice(0, 3), render: (value) => metricValue(value) },
+      ...selectedMonthOptions.map((option) => ({
+        key: option.value,
+        label: option.label.slice(0, 3),
+        render: (value) => metricValue(value),
+      })),
     ],
-    [selectedMonthMeta]
+    [selectedMonthOptions]
   );
 
   const weekAnalysisColumns = useMemo(
     () => [
       { key: 'metric', label: 'Metric' },
-      { key: 'value', label: selectedWeekMeta.label.replace('All ', ''), render: (value) => metricValue(value) },
+      ...selectedWeekOptions.map((option) => ({
+        key: option.value,
+        label: option.label.replace(/\s+/g, ''),
+        render: (value) => metricValue(value),
+      })),
     ],
-    [selectedWeekMeta]
+    [selectedWeekOptions]
   );
 
   const quarterAnalysisColumns = useMemo(
     () => [
       { key: 'metric', label: 'Metric' },
-      { key: 'value', label: selectedQuarterMeta.label, render: (value) => metricValue(value) },
+      ...selectedQuarterOptions.map((option) => ({
+        key: option.value,
+        label: option.label,
+        render: (value) => metricValue(value),
+      })),
     ],
-    [selectedQuarterMeta]
+    [selectedQuarterOptions]
   );
 
   return (
     <div className="executive-dashboard-page">
       <div className="executive-dashboard-shell">
-        {/* <div className="executive-dashboard-hero">
-          <div className="executive-dashboard-hero-copy">
-            <h1 className="ats-heading-1">Executive Dashboard</h1>
-            <p className="ats-body-small">
-              Review demand health, delivery movement, ageing, and TA activity from one place.
-            </p>
-          </div>
-
-          <div className="executive-dashboard-summary">
-            {summaryPills.map((item) => (
-              <div key={item.label} className="executive-summary-pill">
-                <span>{item.label}</span>
-                <strong>{metricValue(item.value)}</strong>
-              </div>
-            ))}
-          </div>
-        </div> */}
-
         <div className="executive-dashboard-panel">
           <div className="executive-dashboard-filter-bar">
             <div className="executive-dashboard-filter-title">
@@ -652,11 +1145,7 @@ const ExecutiveDashboardPage = () => {
             </button>
           </div>
 
-          {loadingData ? (
-            <div className="executive-dashboard-state">Loading executive dashboard...</div>
-          ) : error ? (
-            <div className="executive-dashboard-state error">{error}</div>
-          ) : activeTab === DATA_TAB ? (
+          {activeTab === DATA_TAB ? (
             <>
               <div className="executive-dashboard-grid">
                 <ReportTable
@@ -664,24 +1153,32 @@ const ExecutiveDashboardPage = () => {
                   columns={metricColumns}
                   rows={overallRows}
                   accentClass="accent-amber"
+                  loading={sectionLoading.summary}
+                  errorMessage={sectionErrors.summary}
                 />
                 <ReportTable
                   title="Current Month Demand Metrics"
                   columns={metricColumns}
                   rows={currentMonthRows}
                   accentClass="accent-amber"
+                  loading={sectionLoading.summary}
+                  errorMessage={sectionErrors.summary}
                 />
                 <ReportTable
                   title="Current Week Demand Metrics"
                   columns={metricColumns}
                   rows={currentWeekRows}
                   accentClass="accent-amber"
+                  loading={sectionLoading.summary}
+                  errorMessage={sectionErrors.summary}
                 />
                 <ReportTable
                   title="Demand Ageing Metrics"
                   columns={ageingColumns}
                   rows={ageingRows}
                   accentClass="accent-amber"
+                  loading={sectionLoading.summary}
+                  errorMessage={sectionErrors.summary}
                 />
               </div>
 
@@ -690,9 +1187,17 @@ const ExecutiveDashboardPage = () => {
                 columns={taColumns}
                 rows={taRows}
                 accentClass="accent-emerald executive-report-card-full"
+                loading={sectionLoading.summary}
+                errorMessage={sectionErrors.summary}
               />
 
-              <OpenDemandSummaryTable rows={openDemandSummaryRows} />
+              <OpenDemandSummaryTable
+                rows={openDemandSummaryRows}
+                currentPage={openDemandPage}
+                onPageChange={setOpenDemandPage}
+                loading={sectionLoading.openDemands}
+                errorMessage={sectionErrors.openDemands}
+              />
 
               <section className="executive-analysis-panel">
                 <div className="executive-analysis-panel-header">
@@ -705,6 +1210,8 @@ const ExecutiveDashboardPage = () => {
                     accentClass="accent-violet"
                     columns={monthAnalysisColumns}
                     rows={monthlyAnalysisRows}
+                    loading={sectionLoading.analysis}
+                    errorMessage={sectionErrors.analysis}
                     filters={
                       <>
                         <div className="executive-analysis-filter">
@@ -714,27 +1221,20 @@ const ExecutiveDashboardPage = () => {
                             value={analysisFilters.monthYear}
                             onChange={(event) => handleAnalysisFilterChange('monthYear', event.target.value)}
                           >
-                            {yearOptions.map((year) => (
+                            {availableMonthYearOptions.map((year) => (
                               <option key={year.value} value={year.value}>
                                 {year.label}
                               </option>
                             ))}
                           </select>
                         </div>
-                        <div className="executive-analysis-filter">
-                          <label className="form-label">Month</label>
-                          <select
-                            className="form-select"
-                            value={analysisFilters.month}
-                            onChange={(event) => handleAnalysisFilterChange('month', event.target.value)}
-                          >
-                            {MONTH_OPTIONS.map((month) => (
-                              <option key={month.value} value={month.value}>
-                                {month.label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                        <MultiSelectDropdown
+                          label="Month"
+                          options={availableMonthOptions}
+                          selectedValues={analysisFilters.compareMonths}
+                          onChange={(values) => handleAnalysisFilterChange('compareMonths', values)}
+                          placeholder="Select months"
+                        />
                       </>
                     }
                   />
@@ -744,6 +1244,8 @@ const ExecutiveDashboardPage = () => {
                     accentClass="accent-violet"
                     columns={weekAnalysisColumns}
                     rows={weeklyAnalysisRows}
+                    loading={sectionLoading.analysis}
+                    errorMessage={sectionErrors.analysis}
                     filters={
                       <>
                         <div className="executive-analysis-filter">
@@ -753,7 +1255,7 @@ const ExecutiveDashboardPage = () => {
                             value={analysisFilters.weekYear}
                             onChange={(event) => handleAnalysisFilterChange('weekYear', event.target.value)}
                           >
-                            {yearOptions.map((year) => (
+                            {availableWeekYearOptions.map((year) => (
                               <option key={year.value} value={year.value}>
                                 {year.label}
                               </option>
@@ -767,27 +1269,20 @@ const ExecutiveDashboardPage = () => {
                             value={analysisFilters.weekMonth}
                             onChange={(event) => handleAnalysisFilterChange('weekMonth', event.target.value)}
                           >
-                            {MONTH_OPTIONS.map((month) => (
+                            {availableWeekMonthOptions.map((month) => (
                               <option key={month.value} value={month.value}>
                                 {month.label}
                               </option>
                             ))}
                           </select>
                         </div>
-                        <div className="executive-analysis-filter">
-                          <label className="form-label">Week</label>
-                          <select
-                            className="form-select"
-                            value={analysisFilters.week}
-                            onChange={(event) => handleAnalysisFilterChange('week', event.target.value)}
-                          >
-                            {WEEK_OPTIONS.map((week) => (
-                              <option key={week.value} value={week.value}>
-                                {week.label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                        <MultiSelectDropdown
+                          label="Week"
+                          options={availableWeekOptions}
+                          selectedValues={analysisFilters.compareWeeks}
+                          onChange={(values) => handleAnalysisFilterChange('compareWeeks', values)}
+                          placeholder="Select weeks"
+                        />
                       </>
                     }
                   />
@@ -797,6 +1292,8 @@ const ExecutiveDashboardPage = () => {
                     accentClass="accent-violet"
                     columns={quarterAnalysisColumns}
                     rows={quarterlyAnalysisRows}
+                    loading={sectionLoading.analysis}
+                    errorMessage={sectionErrors.analysis}
                     filters={
                       <>
                         <div className="executive-analysis-filter">
@@ -806,27 +1303,20 @@ const ExecutiveDashboardPage = () => {
                             value={analysisFilters.quarterYear}
                             onChange={(event) => handleAnalysisFilterChange('quarterYear', event.target.value)}
                           >
-                            {yearOptions.map((year) => (
+                            {availableQuarterYearOptions.map((year) => (
                               <option key={year.value} value={year.value}>
                                 {year.label}
                               </option>
                             ))}
                           </select>
                         </div>
-                        <div className="executive-analysis-filter">
-                          <label className="form-label">Quarter</label>
-                          <select
-                            className="form-select"
-                            value={analysisFilters.quarter}
-                            onChange={(event) => handleAnalysisFilterChange('quarter', event.target.value)}
-                          >
-                            {QUARTER_OPTIONS.map((quarter) => (
-                              <option key={quarter.value} value={quarter.value}>
-                                {quarter.label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                        <MultiSelectDropdown
+                          label="Quarter"
+                          options={availableQuarterOptions}
+                          selectedValues={analysisFilters.compareQuarters}
+                          onChange={(values) => handleAnalysisFilterChange('compareQuarters', values)}
+                          placeholder="Select quarters"
+                        />
                       </>
                     }
                   />
@@ -840,6 +1330,8 @@ const ExecutiveDashboardPage = () => {
                 columns={taPerformanceColumns}
                 rows={dashboardData.taPerformanceReport}
                 accentClass="accent-amber executive-report-card-full"
+                loading={sectionLoading.ta}
+                errorMessage={sectionErrors.ta}
               />
 
               <ReportTable
@@ -847,6 +1339,8 @@ const ExecutiveDashboardPage = () => {
                 columns={taScoreColumns}
                 rows={dashboardData.taScoreReport}
                 accentClass="accent-amber executive-report-card-full"
+                loading={sectionLoading.ta}
+                errorMessage={sectionErrors.ta}
               />
             </>
           )}
@@ -855,7 +1349,7 @@ const ExecutiveDashboardPage = () => {
 
       <style>{`
         .executive-dashboard-page {
-          min-height: 100vh;
+          min-height: 100%;
           padding: 22px 18px 30px;
           background:
             radial-gradient(circle at top left, rgba(91, 110, 225, 0.1), transparent 22%),
@@ -1042,6 +1536,60 @@ const ExecutiveDashboardPage = () => {
         .executive-analysis-filter {
           min-width: 0;
         }
+        .executive-multiselect {
+          position: relative;
+        }
+        .executive-multiselect-trigger {
+          width: 100%;
+          min-height: 46px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          padding: 10px 14px;
+          border: 1px solid rgba(203, 213, 225, 0.95);
+          border-radius: 14px;
+          background: #ffffff;
+          color: #334155;
+          cursor: pointer;
+          text-align: left;
+        }
+        .executive-multiselect-text {
+          flex: 1;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .executive-multiselect-caret {
+          flex-shrink: 0;
+          color: #64748b;
+        }
+        .executive-multiselect-menu {
+          position: absolute;
+          top: calc(100% + 6px);
+          left: 0;
+          right: 0;
+          z-index: 10;
+          max-height: 220px;
+          overflow-y: auto;
+          border: 1px solid rgba(203, 213, 225, 0.95);
+          border-radius: 14px;
+          background: #ffffff;
+          box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+        }
+        .executive-multiselect-option {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 12px;
+          font-size: 14px;
+          color: #334155;
+          cursor: pointer;
+        }
+        .executive-multiselect-option + .executive-multiselect-option {
+          border-top: 1px solid rgba(226, 232, 240, 0.9);
+        }
         .executive-analysis-grid .executive-analysis-card:nth-child(2) .executive-analysis-controls {
           grid-template-columns: 0.95fr 0.95fr 1.1fr;
         }
@@ -1075,6 +1623,87 @@ const ExecutiveDashboardPage = () => {
           font-weight: 600;
           color: #1e293b !important;
         }
+        .executive-demand-group-title {
+          white-space: pre-line;
+          padding: 14px 16px !important;
+          font-weight: 700;
+          color: #0f172a !important;
+          background: #f8fafc !important;
+        }
+        .executive-open-demand-table th {
+          text-align: center !important;
+          color: #2563eb;
+        }
+        .executive-open-demand-pagination-bar {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 12px;
+          padding: 12px 16px;
+          border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+          background: #ffffff;
+        }
+        .executive-open-demand-pagination-text {
+          font-size: 14px;
+          color: #334155;
+        }
+        .executive-open-demand-pagination-actions {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .executive-open-demand-page-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          border: 1px solid rgba(203, 213, 225, 0.95);
+          border-radius: 999px;
+          background: #ffffff;
+          color: #475569;
+          cursor: pointer;
+          transition: 0.2s ease;
+        }
+        .executive-open-demand-page-button:hover:not(:disabled) {
+          border-color: #94a3b8;
+          color: #1e293b;
+          background: #f8fafc;
+        }
+        .executive-open-demand-page-button:disabled {
+          opacity: 0.45;
+          cursor: not-allowed;
+        }
+        .executive-open-demand-table td {
+          text-align: center !important;
+        }
+        .executive-open-demand-table .executive-demand-group-title {
+          text-align: left !important;
+        }
+        .executive-open-demand-merged-cell {
+          vertical-align: middle;
+          font-weight: 600;
+          text-align: center !important;
+        }
+        .executive-open-demand-count-cell,
+        .executive-open-demand-ageing-cell {
+          text-align: center !important;
+          vertical-align: middle;
+        }
+        .executive-open-demand-status-cell {
+          text-align: center !important;
+          vertical-align: middle;
+        }
+        .executive-open-demand-table th:first-child,
+        .executive-open-demand-table td:first-child,
+        .executive-open-demand-table th:last-child,
+        .executive-open-demand-table td:last-child {
+          text-align: center !important;
+        }
+        .executive-open-demand-table .executive-demand-group-title:first-child,
+        .executive-open-demand-table .executive-demand-group-title:last-child {
+          text-align: left !important;
+        }
         .executive-report-table tbody tr:nth-child(even) td {
           background: #f1f5f9;
         }
@@ -1090,6 +1719,9 @@ const ExecutiveDashboardPage = () => {
           text-align: center !important;
           color: #64748b;
           background: #f8fafc !important;
+        }
+        .executive-report-error {
+          color: #b91c1c;
         }
         .executive-dashboard-state {
           padding: 40px 24px;
