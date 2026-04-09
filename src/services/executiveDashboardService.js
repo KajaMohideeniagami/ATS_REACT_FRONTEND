@@ -73,6 +73,12 @@ const normalizeAgeingRow = (row) => ({
   total_positions: Number(row?.total_positions ?? row?.TOTAL_POSITIONS ?? 0),
 });
 
+const normalizeDemandAgeingDetailRow = (row) => ({
+  customer_name: String(row?.customer_name ?? row?.CUSTOMER_NAME ?? ''),
+  demand_name: String(row?.demand_name ?? row?.DEMAND_NAME ?? ''),
+  no_of_position: Number(row?.no_of_position ?? row?.NO_OF_POSITION ?? 0),
+});
+
 const normalizeTaPerformance = (row = {}) => ({
   profiles_sourced_current_month: Number(
     row?.profiles_sourced_current_month
@@ -239,6 +245,15 @@ export const getExecutiveDashboardDemandTypes = async () => {
     .sort((a, b) => a.label.localeCompare(b.label));
 };
 
+export const getExecutiveDashboardYears = async () => {
+  const response = await executiveDashboardApi.get(LOV_ENDPOINTS.EXECUTIVE_DASHBOARD_YEARS);
+
+  return extractList(response.data)
+    .map(normalizeOption)
+    .filter(Boolean)
+    .sort((a, b) => Number(b.value) - Number(a.value));
+};
+
 export const getExecutiveDashboardData = async (filters = {}) => {
   const [summaryData, openDemandsData, analysisData] = await Promise.all([
     getExecutiveDashboardSummaryData(filters),
@@ -285,6 +300,17 @@ export const getExecutiveDashboardOpenDemandsData = async (filters = {}) => {
   return {
     openDemandsSummary: extractList(payload.open_demands_summary ?? payload.OPEN_DEMANDS_SUMMARY).map(normalizeOpenDemandSummaryRow),
   };
+};
+
+export const getExecutiveDashboardDemandAgeingDetails = async (filters = {}, ageRange) => {
+  const response = await executiveDashboardApi.get(API_ENDPOINTS.EXECUTIVE_DASHBOARD_DEMAND_AGEING_DETAILS, {
+    params: {
+      ...buildParams(filters),
+      age_range: ageRange,
+    },
+  });
+
+  return extractList(response.data).map(normalizeDemandAgeingDetailRow);
 };
 
 export const getExecutiveDashboardAnalysisData = async (filters = {}) => {

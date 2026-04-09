@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Filter, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Filter, RefreshCw, X } from 'lucide-react';
 import { toast } from '../../toast/index';
 import {
   getExecutiveDashboardCustomers,
   getExecutiveDashboardDemandTypes,
+  getExecutiveDashboardYears,
   getExecutiveDashboardAnalysisData,
+  getExecutiveDashboardDemandAgeingDetails,
   getExecutiveDashboardOpenDemandsData,
   getExecutiveDashboardSummaryData,
   getExecutiveDashboardTaData,
@@ -448,11 +450,79 @@ const AnalysisTableCard = ({
   </section>
 );
 
+const DemandAgeingDetailsModal = ({
+  open,
+  title,
+  rows,
+  loading,
+  errorMessage,
+  onClose,
+}) => {
+  if (!open) return null;
+
+  return (
+    <div className="executive-modal-overlay" onClick={onClose}>
+      <div
+        className="executive-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="executive-demand-details-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="executive-modal-header">
+          <h3 id="executive-demand-details-title">{title}</h3>
+          <button type="button" className="executive-modal-close" onClick={onClose} aria-label="Close">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="executive-modal-body">
+          <div className="executive-report-table-wrap">
+            <table className="executive-report-table">
+              <thead>
+                <tr>
+                  <th>Customer Name</th>
+                  <th>Demand Name</th>
+                  <th>No Of Position</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td className="executive-report-empty" colSpan={3}>Loading...</td>
+                  </tr>
+                ) : errorMessage ? (
+                  <tr>
+                    <td className="executive-report-empty executive-report-error" colSpan={3}>{errorMessage}</td>
+                  </tr>
+                ) : rows.length === 0 ? (
+                  <tr>
+                    <td className="executive-report-empty" colSpan={3}>No demand found.</td>
+                  </tr>
+                ) : (
+                  rows.map((row, index) => (
+                    <tr key={`${row.customer_name}-${row.demand_name}-${index}`}>
+                      <td>{safeText(row.customer_name)}</td>
+                      <td>{safeText(row.demand_name)}</td>
+                      <td>{row.no_of_position ? metricValue(row.no_of_position) : ''}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ExecutiveDashboardPage = () => {
   const [activeTab, setActiveTab] = useState(DATA_TAB);
   const [loadingFilters, setLoadingFilters] = useState(true);
   const [customerOptions, setCustomerOptions] = useState([]);
   const [demandTypeOptions, setDemandTypeOptions] = useState([]);
+  const [topYearOptions, setTopYearOptions] = useState([]);
   const [filters, setFilters] = useState({
     customer: 'All',
     demandType: 'All',
@@ -471,21 +541,29 @@ const ExecutiveDashboardPage = () => {
   const [sectionLoading, setSectionLoading] = useState(EMPTY_SECTION_LOADING);
   const [sectionErrors, setSectionErrors] = useState(EMPTY_SECTION_ERRORS);
   const [openDemandPage, setOpenDemandPage] = useState(1);
+  const [ageingDetailsOpen, setAgeingDetailsOpen] = useState(false);
+  const [selectedAgeRange, setSelectedAgeRange] = useState('');
+  const [ageingDetailRows, setAgeingDetailRows] = useState([]);
+  const [ageingDetailsLoading, setAgeingDetailsLoading] = useState(false);
+  const [ageingDetailsError, setAgeingDetailsError] = useState('');
 
-  const yearOptions = useMemo(buildYearOptions, []);
+  const fallbackYearOptions = useMemo(buildYearOptions, []);
+  const yearOptions = topYearOptions.length ? topYearOptions : fallbackYearOptions;
 
   useEffect(() => {
     const loadFilters = async () => {
       try {
         setLoadingFilters(true);
 
-        const [customers, demandTypes] = await Promise.all([
+        const [customers, demandTypes, years] = await Promise.all([
           getExecutiveDashboardCustomers(),
           getExecutiveDashboardDemandTypes(),
+          getExecutiveDashboardYears(),
         ]);
 
         setCustomerOptions(customers);
         setDemandTypeOptions(demandTypes);
+        setTopYearOptions(years);
       } catch (fetchError) {
         console.error('Executive dashboard filter load error:', fetchError);
         toast.error('Failed to load executive dashboard filters.');
@@ -676,6 +754,34 @@ const ExecutiveDashboardPage = () => {
       compareQuarters: [],
     });
     toast.success('Executive dashboard filters reset.');
+  };
+
+  const handleOpenAgeingDetails = async (ageRange, demandCount) => {
+    if (!demandCount) return;
+
+    setSelectedAgeRange(ageRange);
+    setAgeingDetailsOpen(true);
+    setAgeingDetailsLoading(true);
+    setAgeingDetailsError('');
+
+    try {
+      const rows = await getExecutiveDashboardDemandAgeingDetails(filters, ageRange);
+      setAgeingDetailRows(rows);
+    } catch (fetchError) {
+      console.error('Executive dashboard ageing details load error:', fetchError);
+      setAgeingDetailsError('Failed to load demand details.');
+      setAgeingDetailRows([]);
+    } finally {
+      setAgeingDetailsLoading(false);
+    }
+  };
+
+  const handleCloseAgeingDetails = () => {
+    setAgeingDetailsOpen(false);
+    setSelectedAgeRange('');
+    setAgeingDetailRows([]);
+    setAgeingDetailsError('');
+    setAgeingDetailsLoading(false);
   };
 
   const overallRows = useMemo(
@@ -935,7 +1041,21 @@ const ExecutiveDashboardPage = () => {
 
   const ageingColumns = [
     { key: 'age_range', label: 'Age Range' },
-    { key: 'demand_count', label: 'Demand Count', render: (value) => metricValue(value) },
+    {
+      key: 'demand_count',
+      label: 'Demand Count',
+      render: (value, row) => (
+        Number(value ?? 0) > 0 ? (
+          <button
+            type="button"
+            className="executive-link-button"
+            onClick={() => handleOpenAgeingDetails(row.age_range, value)}
+          >
+            {metricValue(value)}
+          </button>
+        ) : metricValue(value)
+      ),
+    },
     { key: 'total_positions', label: 'Total Positions', render: (value) => metricValue(value) },
   ];
 
@@ -1723,6 +1843,67 @@ const ExecutiveDashboardPage = () => {
         .executive-report-error {
           color: #b91c1c;
         }
+        .executive-link-button {
+          border: none;
+          background: transparent;
+          padding: 0;
+          color: #2563eb;
+          font: inherit;
+          cursor: pointer;
+          text-decoration: underline;
+        }
+        .executive-link-button:hover {
+          color: #1d4ed8;
+        }
+        .executive-modal-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 1200;
+          background: rgba(15, 23, 42, 0.42);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 24px;
+        }
+        .executive-modal {
+          width: min(760px, calc(100vw - 32px));
+          max-height: min(80vh, 760px);
+          display: flex;
+          flex-direction: column;
+          background: #ffffff;
+          border-radius: 20px;
+          box-shadow: 0 24px 60px rgba(15, 23, 42, 0.2);
+          overflow: hidden;
+        }
+        .executive-modal-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 18px 20px;
+          border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+        }
+        .executive-modal-header h3 {
+          margin: 0;
+          font-size: 18px;
+          color: #0f172a;
+        }
+        .executive-modal-close {
+          width: 36px;
+          height: 36px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid rgba(203, 213, 225, 0.95);
+          border-radius: 10px;
+          background: #ffffff;
+          color: #334155;
+          cursor: pointer;
+        }
+        .executive-modal-body {
+          padding: 18px 20px 20px;
+          overflow: auto;
+        }
         .executive-dashboard-state {
           padding: 40px 24px;
           text-align: center;
@@ -1791,6 +1972,15 @@ const ExecutiveDashboardPage = () => {
           }
         }
       `}</style>
+
+      <DemandAgeingDetailsModal
+        open={ageingDetailsOpen}
+        title={selectedAgeRange ? `Demand Details - ${selectedAgeRange}` : 'Demand Details'}
+        rows={ageingDetailRows}
+        loading={ageingDetailsLoading}
+        errorMessage={ageingDetailsError}
+        onClose={handleCloseAgeingDetails}
+      />
     </div>
   );
 };
