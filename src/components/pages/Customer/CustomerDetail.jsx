@@ -17,7 +17,7 @@ import SendEmailToVendorsModal from './SendEmailToVendorsModal';
 import ViewDemandRequestModal from './ViewDemandRequestModal';
 import EditDemandModal from './EditDemandModal';
 import { deleteContact } from "../../../services/contactService";
-import { toast } from "../../Toast";
+import { toast } from "../../toast/index";
 const TABS = [
   { key: "all",      label: "Show All" },
   { key: "details",  label: "Customer Details" },

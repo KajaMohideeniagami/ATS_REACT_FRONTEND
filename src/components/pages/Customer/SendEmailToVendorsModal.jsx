@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { ChevronDown, Paperclip, Send, Search, X } from "lucide-react";
-import { toast } from "../../Toast";
+import { toast } from "../../toast/index";
 import { API_BASE_URL, LOV_ENDPOINTS } from "../../../config/apiConfig";
 import { getDemandDetails } from "../../../services/demandService";
 import { sendVendorEmail } from "../../../services/vendorEmailService";

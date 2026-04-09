@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { updateProfileStatus } from "../../../services/profileStatusService";
 import { getProfileStatuses } from "../../../services/lovService";
-import { toast } from "../../Toast";
+import { toast } from "../../toast/index";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const PAGE_SIZE = 7;

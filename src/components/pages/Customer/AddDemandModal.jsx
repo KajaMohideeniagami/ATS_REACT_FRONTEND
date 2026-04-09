@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { X, Upload, Zap } from 'lucide-react';
 import { addDemand, extractJD, uploadDemandFiles } from '../../../services/demandService';
-import { toast } from '../../Toast';
+import { toast } from '../../toast/index';
 import axios from 'axios';
 import { API_BASE_URL, LOV_ENDPOINTS } from '../../../config/apiConfig';
+import { validateRequiredFields } from '../../../utils/formValidation';
 import mammoth from 'mammoth';
 
 // ── Load pdf.js from CDN dynamically ─────────────────────────────────────
@@ -293,20 +294,29 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
 
   // ── Validation ────────────────────────────────────────────────────────
   const validate = () => {
-    const e = {};
-    if (!formData.LOCATION_TYPE)            e.LOCATION_TYPE     = 'Location Type is required';
-    if (!formData.COUNTRY_ID)               e.COUNTRY_ID        = 'Country is required';
-    if (!formData.DEMAND_TYPE)              e.DEMAND_TYPE       = 'Demand Type is required';
-    if (!formData.WORK_MODE_ID)             e.WORK_MODE_ID      = 'Work Mode is required';
-    if (!formData.BILLABLE_DATE)            e.BILLABLE_DATE     = 'Billing Date is required';
-    if (!formData.JOB_ROLE.trim())          e.JOB_ROLE          = 'Role is required';
-    if (!formData.NO_OF_POSITION)           e.NO_OF_POSITION    = 'No of Positions is required';
-    if (!formData.END_CLIENT_NAME.trim())   e.END_CLIENT_NAME   = 'End Client is required';
-    if (!formData.RESOURCE_LOCATION.trim()) e.RESOURCE_LOCATION = 'Resource Location is required';
-    if (!formData.DES_STATUS_ID)            e.DES_STATUS_ID     = 'Decision is required';
-    if (!formData.ASSIGNED_TO.trim())       e.ASSIGNED_TO       = 'Assigned To is required';
+    const result = validateRequiredFields(
+      {
+        LOCATION_TYPE: formData.LOCATION_TYPE,
+        COUNTRY_ID: formData.COUNTRY_ID,
+        DEMAND_TYPE: formData.DEMAND_TYPE,
+        WORK_MODE_ID: formData.WORK_MODE_ID,
+        BILLABLE_DATE: formData.BILLABLE_DATE,
+        JOB_ROLE: formData.JOB_ROLE,
+        NO_OF_POSITION: formData.NO_OF_POSITION,
+        END_CLIENT_NAME: formData.END_CLIENT_NAME,
+        RESOURCE_LOCATION: formData.RESOURCE_LOCATION,
+        DES_STATUS_ID: formData.DES_STATUS_ID,
+        ASSIGNED_TO: formData.ASSIGNED_TO,
+      },
+      { toastKey: 'add-demand-form', formId: 'add-demand-form' }
+    );
+
+    const e = { ...result.errors };
+    if (e.NO_OF_POSITION) e.NO_OF_POSITION = 'No of Positions is required';
+    if (e.DES_STATUS_ID) e.DES_STATUS_ID = 'Decision is required';
+
     setErrors(e);
-    return Object.keys(e).length === 0;
+    return result.isValid;
   };
 
   // ── Submit ────────────────────────────────────────────────────────────

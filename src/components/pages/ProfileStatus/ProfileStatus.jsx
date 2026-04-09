@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { X } from "lucide-react";
 import ProfileStatusTable from "./ProfileStatusTable";
 import { getProfileStatusList } from "../../../services/profileStatusService";
-import { toast } from "../../../components/Toast";
+import { toast } from "../../../components/toast/index";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/apiConfig";
 
 const ProfileStatus = ({ customerId, customerName, isOpen, onClose }) => {

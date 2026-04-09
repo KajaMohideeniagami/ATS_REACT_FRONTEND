@@ -10,7 +10,7 @@ import {
   RotateCcw,
   Search,
 } from 'lucide-react';
-import { toast } from '../../../components/Toast';
+import { toast } from '../../../components/toast/index';
 import { getDemandReportCustomers, getDemandReportRows } from '../../../services/demandReportService';
 import '../../../global.css';
 

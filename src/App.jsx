@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import {
   BarChart3,
@@ -18,12 +18,14 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { isLoggedIn, clearSession, getSession } from './services/authService';
 import ProfileStatusModal from './components/pages/ProfileStatus/ProfileStatus';
 import DemandReportPage from './components/pages/DemandReport/DemandReportPage';
-import ToastContainer from './components/Toast';
+import DashboardPage from './components/pages/Dashboard/DashboardPage';
+import ExecutiveDashboardPage from './components/pages/ExecutiveDashboard/ExecutiveDashboardPage';
+import ToastProvider from './components/toast/index';
 import './global.css';
 
 const NAV_ITEMS = [
-  { label: 'Dashboard', icon: LayoutDashboard, path: null },
-  { label: 'Executive Dashboard', icon: BarChart3, path: null },
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+  { label: 'Executive Dashboard', icon: BarChart3, path: '/executive-dashboard' },
   { label: 'Customer', icon: Users, path: '/' },
   { label: 'Profile Report', icon: UserSearch, path: null },
   { label: 'Demand Report Data', icon: BriefcaseBusiness, path: '/demand-report' },
@@ -36,8 +38,24 @@ const AppShell = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isMobileNav, setIsMobileNav] = useState(() => window.innerWidth <= 980);
   const sessionUser = getSession();
   const headerUserName = sessionUser?.username || sessionUser?.full_name || sessionUser?.email || 'Workspace User';
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 980;
+      setIsMobileNav(mobile);
+      setSidebarOpen((previous) => {
+        if (mobile) return false;
+        return previous === false && !mobile ? true : previous;
+      });
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleLogout = () => {
     clearSession();
@@ -47,10 +65,15 @@ const AppShell = ({ children }) => {
   const handleNavClick = (item) => {
     if (!item.path) return;
     navigate(item.path);
+    if (isMobileNav) setSidebarOpen(false);
   };
 
   return (
-    <div className={`app-shell ${sidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}>
+    <div
+      className={`app-shell ${sidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'} ${
+        isMobileNav ? 'mobile-nav' : 'desktop-nav'
+      } ${isMobileNav && sidebarOpen ? 'mobile-nav-open' : ''}`}
+    >
       <header className="app-header">
         <div className="app-header-inner">
           <div className="app-header-brand">
@@ -76,6 +99,15 @@ const AppShell = ({ children }) => {
           )}
         </div>
       </header>
+
+      {isMobileNav && sidebarOpen && (
+        <button
+          type="button"
+          className="app-sidebar-backdrop"
+          aria-label="Close navigation"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
       <div className="app-layout">
         <aside className={`app-sidebar ${sidebarOpen ? 'open' : 'collapsed'}`}>
@@ -114,6 +146,28 @@ const App = () => {
         <Route path="/login" element={<LoginPage />} />
 
         <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <DashboardPage />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/executive-dashboard"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <ExecutiveDashboardPage />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/"
           element={
             <ProtectedRoute>
@@ -126,6 +180,17 @@ const App = () => {
 
         <Route
           path="/customers/create"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <CustomerCreate />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/customers/:id/edit"
           element={
             <ProtectedRoute>
               <AppShell>
@@ -171,7 +236,7 @@ const App = () => {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      <ToastContainer />
+      <ToastProvider />
     </Router>
   );
 };

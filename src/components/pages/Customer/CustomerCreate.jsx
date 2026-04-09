@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { createCustomer } from '../../../services/customerService';
+import { useNavigate, useParams } from 'react-router-dom';
+import { createCustomer, updateCustomer } from '../../../services/customerService';
 import { getIndustries, getTypes, getEngagementTypes, getCountries } from '../../../services/lovService';
+import { getCustomerDetails } from '../../../services/customerDetailService';
 import '../../../global.css';
-import { toast } from '../../../components/Toast';  
+import { toast } from '../../../components/toast/index';  
+import { validateRequiredFields } from '../../../utils/formValidation';
 
 const CustomerCreate = () => {
   const navigate = useNavigate();
+  const { id } = useParams();
+  const isEditMode = Boolean(id);
   const [formData, setFormData] = useState({
     CUSTOMER_NAME: '',
     CUSTOMER_CODE: '',
@@ -23,6 +27,7 @@ const CustomerCreate = () => {
   const [success, setSuccess] = useState(false);
   const [lovLoading, setLovLoading] = useState(true);
   const [lovError, setLovError] = useState(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
 
   // LOV data state
   const [industries, setIndustries] = useState([]);
@@ -30,7 +35,8 @@ const CustomerCreate = () => {
   const [engagementTypes, setEngagementTypes] = useState([]);
   const [countries, setCountries] = useState([]);
 
-  // Fetch LOV data on component mount
+  const toFormValue = (value) => (value === null || value === undefined ? '' : String(value));
+
   useEffect(() => {
     const fetchLovData = async () => {
       try {
@@ -62,10 +68,68 @@ const CustomerCreate = () => {
     fetchLovData();
   }, []);
 
+  useEffect(() => {
+    if (!isEditMode) return;
+
+    const findLovValueByLabel = (items, label) => {
+      if (!label || !Array.isArray(items)) return '';
+      const normalizedLabel = String(label).trim().toLowerCase();
+      const match = items.find((item) => String(item.label).trim().toLowerCase() === normalizedLabel);
+      return match ? String(match.value) : '';
+    };
+
+    const fetchCustomerForEdit = async () => {
+      try {
+        setDetailsLoading(true);
+        const result = await getCustomerDetails(id);
+        const customer = result?.customer || {};
+
+        setFormData({
+          CUSTOMER_NAME: customer.customer_name || customer.CUSTOMER_NAME || '',
+          CUSTOMER_CODE: customer.customer_code || customer.CUSTOMER_CODE || '',
+          INDUSTRY_ID: toFormValue(
+            customer.industry_id ||
+            customer.INDUSTRY_ID ||
+            findLovValueByLabel(industries, customer.industry_name || customer.INDUSTRY_NAME)
+          ),
+          TYPE_ID: toFormValue(
+            customer.type_id ||
+            customer.TYPE_ID ||
+            findLovValueByLabel(types, customer.type_name || customer.TYPE_NAME)
+          ),
+          ENGAGEMENT_TYPE_ID: toFormValue(
+            customer.engagement_type_id ||
+            customer.ENGAGEMENT_TYPE_ID ||
+            findLovValueByLabel(
+              engagementTypes,
+              customer.engagement_type_name || customer.ENGAGEMENT_TYPE_NAME
+            )
+          ),
+          COUNTRY_ID: toFormValue(
+            customer.country_id ||
+            customer.COUNTRY_ID ||
+            findLovValueByLabel(countries, customer.country_name || customer.COUNTRY_NAME)
+          ),
+          WEB_SITE: customer.web_site || customer.WEB_SITE || customer.website || '',
+          CUSTOMER_NOTES: customer.customer_notes || customer.CUSTOMER_NOTES || '',
+        });
+      } catch (error) {
+        console.error('Error fetching customer details for edit:', error);
+        setLovError('Failed to load customer data. Please try again.');
+      } finally {
+        setDetailsLoading(false);
+      }
+    };
+
+    if (!lovLoading) {
+      fetchCustomerForEdit();
+    }
+  }, [isEditMode, id, lovLoading, industries, types, engagementTypes, countries]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
 
-    if (name === 'CUSTOMER_NAME') {
+    if (!isEditMode && name === 'CUSTOMER_NAME') {
       // When customer name changes, auto-fill customer code with first 5 letters
       const autoCode = value.substring(0, 5).toUpperCase();
       setFormData(prev => ({
@@ -96,24 +160,25 @@ const CustomerCreate = () => {
   };
 
   const validateForm = () => {
-    const newErrors = {};
+    const result = validateRequiredFields(
+      {
+        CUSTOMER_NAME: formData.CUSTOMER_NAME,
+        CUSTOMER_CODE: formData.CUSTOMER_CODE,
+        INDUSTRY_ID: formData.INDUSTRY_ID,
+        TYPE_ID: formData.TYPE_ID,
+        ENGAGEMENT_TYPE_ID: formData.ENGAGEMENT_TYPE_ID,
+        COUNTRY_ID: formData.COUNTRY_ID,
+      },
+      {
+        toastKey: 'customer-create-form',
+        formId: 'customer-form',
+      }
+    );
 
-    if (!formData.CUSTOMER_NAME.trim()) {
-      newErrors.CUSTOMER_NAME = 'Customer name is required';
-    }
+    const newErrors = { ...result.errors };
 
-    if (!formData.CUSTOMER_CODE.trim()) {
-      newErrors.CUSTOMER_CODE = 'Customer code is required';
-    } else if (formData.CUSTOMER_CODE.length > 5) {
+    if (formData.CUSTOMER_CODE.trim() && formData.CUSTOMER_CODE.length > 5) {
       newErrors.CUSTOMER_CODE = 'Customer code must be 5 characters or less';
-    }
-
-    if (!formData.INDUSTRY_ID) {
-      newErrors.INDUSTRY_ID = 'Industry is required';
-    }
-
-    if (!formData.COUNTRY_ID) {
-      newErrors.COUNTRY_ID = 'Country is required';
     }
 
     setErrors(newErrors);
@@ -151,16 +216,18 @@ const CustomerCreate = () => {
 
       console.log('Customer Creation Payload:', payload);
 
-      const response = await createCustomer(payload);
-      console.log('Customer Creation Success:', response);
+      const response = isEditMode
+        ? await updateCustomer(id, payload)
+        : await createCustomer(payload);
+
+      console.log(`Customer ${isEditMode ? 'Update' : 'Creation'} Success:`, response);
 
       setSuccess(true);
-toast.success('Customer created successfully!');
+      toast.success(isEditMode ? 'Customer updated successfully!' : 'Customer created successfully!');
 
-      // Redirect to customer list after 2 seconds
       setTimeout(() => {
-        navigate('/');
-      }, 2000);
+        navigate(isEditMode ? `/customers/${id}` : '/');
+      }, 1200);
     } catch (error) {
       console.error('Customer Creation Error:', error);
       console.error('Error Response:', error.response);
@@ -213,16 +280,16 @@ toast.success('Customer created successfully!');
   };
 
   const handleCancel = () => {
-    navigate('/');
+    navigate(isEditMode ? `/customers/${id}` : '/');
   };
 
   // Show loading state while fetching LOV data
-  if (lovLoading) {
+  if (lovLoading || detailsLoading) {
     return (
       <div className="customer-list-container">
         <div className="form-container">
           <div className="loading-message">
-            Loading form data...
+            {isEditMode ? 'Loading customer data...' : 'Loading form data...'}
           </div>
         </div>
       </div>
@@ -261,14 +328,14 @@ toast.success('Customer created successfully!');
   return (
     <div className="customer-list-container">
       <div className="form-container">
-        <div className="form-header">
-          <h2 className="ats-heading-2">Create New Customer</h2>
+          <div className="form-header">
+          <h2 className="ats-heading-2">{isEditMode ? 'Edit Customer' : 'Create New Customer'}</h2>
           <div className="form-header-actions">
             <button type="button" className="btn-secondary" onClick={handleCancel}>
               Cancel
             </button>
             <button type="submit" form="customer-form" className="btn-primary" disabled={loading}>
-              {loading ? 'Creating...' : 'Create Customer'}
+              {loading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Customer' : 'Create Customer')}
             </button>
           </div>
         </div>
@@ -331,7 +398,6 @@ toast.success('Customer created successfully!');
                 className="form-select"
                 value={formData.TYPE_ID}
                 onChange={handleInputChange}
-                required
               >
                 <option value="">Select Type</option>
                 {Array.isArray(types) && types.map(type => (
@@ -340,6 +406,7 @@ toast.success('Customer created successfully!');
                   </option>
                 ))}
               </select>
+              {errors.TYPE_ID && <span className="form-error">{errors.TYPE_ID}</span>}
             </div>
           </div>
 
@@ -351,7 +418,6 @@ toast.success('Customer created successfully!');
                 className="form-select"
                 value={formData.ENGAGEMENT_TYPE_ID}
                 onChange={handleInputChange}
-                required
               >
                 <option value="">Select Engagement Type</option>
                 {Array.isArray(engagementTypes) && engagementTypes.map(type => (
@@ -361,6 +427,7 @@ toast.success('Customer created successfully!');
                   
                 ))}
               </select>
+              {errors.ENGAGEMENT_TYPE_ID && <span className="form-error">{errors.ENGAGEMENT_TYPE_ID}</span>}
             </div>
 
             <div className="form-group">

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { addContact, updateContact } from '../../../services/contactService';
-import { toast } from '../../Toast';
+import { toast } from '../../toast/index';
+import { validateRequiredFields } from '../../../utils/formValidation';
 
 const emptyForm = {
   CONTACT_NAME: '',
@@ -73,10 +74,17 @@ const AddContactModal = ({ isOpen, onClose, onSuccess, customerId, editContact =
   };
 
   const validate = () => {
-    const newErrors = {};
-    if (!formData.CONTACT_NAME.trim()) newErrors.CONTACT_NAME = 'Contact name is required';
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const result = validateRequiredFields(
+      {
+        CONTACT_NAME: formData.CONTACT_NAME,
+      },
+      {
+        toastKey: 'contact-form',
+      }
+    );
+
+    setErrors(result.errors);
+    return result.isValid;
   };
 
   const handleSubmit = async (e) => {

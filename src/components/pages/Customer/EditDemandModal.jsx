@@ -4,7 +4,7 @@ import mammoth from 'mammoth';
 import { Upload, X, Zap } from 'lucide-react';
 import { API_BASE_URL, LOV_ENDPOINTS } from '../../../config/apiConfig';
 import { extractJD, getDemandDetails, updateDemand, uploadDemandFiles } from '../../../services/demandService';
-import { toast } from '../../Toast';
+import { toast } from '../../toast/index';
 
 const api = axios.create({ baseURL: API_BASE_URL, timeout: 10000 });
 

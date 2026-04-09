@@ -3,10 +3,15 @@ export const API_BASE_URL = (
 ).replace(/\/$/, '');
 
 export const API_ENDPOINTS = Object.freeze({
-  DASHBOARD: '/customers/dashboard',
-  CUSTOMERS: '/customers/',
+  DASHBOARD: '/customers/card_dashboard',
+  EXECUTIVE_DASHBOARD_SUMMARY: '/reports/executive-dashboard-summary',
+  EXECUTIVE_DASHBOARD_OPEN_DEMANDS: '/reports/executive-dashboard-open-demands',
+  EXECUTIVE_DASHBOARD_ANALYSIS: '/reports/executive-dashboard-analysis',
+  EXECUTIVE_DASHBOARD_TA: '/reports/executive-dashboard-ta',
+  CUSTOMERS: '/customers/dashboard',
   LOVS_BASE: '/lovs/',
   ADD_CUSTOMER: '/addcustomers/addcustomer',
+  UPDATE_CUSTOMER: '/addcustomers/updatecustomer',
   CUSTOMER_DETAILS: '/customers_details/details/',
   ADD_CONTACT: '/contacts_api/add',
   UPDATE_CONTACT: '/contacts_api/update',

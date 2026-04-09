@@ -3,7 +3,7 @@ import axios from "axios";
 import { X } from "lucide-react";
 import { API_BASE_URL, LOV_ENDPOINTS } from "../../../config/apiConfig";
 import { getDemandDetails } from "../../../services/demandService";
-import { toast } from "../../Toast";
+import { toast } from "../../toast/index";
 
 const api = axios.create({
   baseURL: API_BASE_URL,

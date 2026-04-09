@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { X, Upload, FileText } from "lucide-react";
-import { toast } from "../../Toast";
+import { toast } from "../../toast/index";
 import axios from "axios";
 import { API_BASE_URL, API_ENDPOINTS, LOV_ENDPOINTS } from "../../../config/apiConfig";
 import { getDemandDetails } from "../../../services/demandService";
+import { validateRequiredFields } from "../../../utils/formValidation";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -210,25 +211,48 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
 
   // ── Validation ───────────────────────────────────────────────────────────
   const validate = () => {
-    const e = {};
+    const result = validateRequiredFields(
+      {
+        DEMAND_ID: selectedDemandId,
+        PROFILE_NAME: formData.PROFILE_NAME,
+        PROFILE_EMAIL: formData.PROFILE_EMAIL,
+        CURRENT_LOCATION: formData.CURRENT_LOCATION,
+        CURRENT_COMPANY: formData.CURRENT_COMPANY,
+        PREFERRED_LOCATION: formData.PREFERRED_LOCATION,
+        WORK_MODE_ID: formData.WORK_MODE_ID,
+        WORK_EXP_IN_YEARS: formData.WORK_EXP_IN_YEARS,
+        RELEVANT_EXP_IN_YEARS: formData.RELEVANT_EXP_IN_YEARS,
+        SALARY_CURRENCY_ID: formData.SALARY_CURRENCY_ID,
+        CURRENT_SALARY_PA: formData.CURRENT_SALARY_PA,
+        EXPECTED_SALARY_PA: formData.EXPECTED_SALARY_PA,
+        PROFILE_AVAILABILITY: formData.PROFILE_AVAILABILITY,
+        TAX_TERMS: formData.TAX_TERMS,
+        VENDOR_ID: formData.VENDOR_ID,
+      },
+      { toastKey: 'add-profile-form', formId: 'add-profile-form' }
+    );
+
+    const e = { ...result.errors };
     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!selectedDemandId)                          e.DEMAND_ID             = "Please select a demand";
-    if (!formData.PROFILE_NAME.trim())              e.PROFILE_NAME          = "Name is required";
-    if (!formData.PROFILE_EMAIL.trim())             e.PROFILE_EMAIL         = "Email is required";
-    else if (!emailRe.test(formData.PROFILE_EMAIL)) e.PROFILE_EMAIL         = "Invalid email format";
-    if (!formData.CURRENT_LOCATION.trim())          e.CURRENT_LOCATION      = "Required";
-    if (!formData.CURRENT_COMPANY.trim())           e.CURRENT_COMPANY       = "Required";
-    if (!formData.PREFERRED_LOCATION.trim())        e.PREFERRED_LOCATION    = "Required";
-    if (!formData.WORK_MODE_ID)                     e.WORK_MODE_ID          = "Required";
-    if (!formData.WORK_EXP_IN_YEARS)                e.WORK_EXP_IN_YEARS     = "Required";
-    if (!formData.RELEVANT_EXP_IN_YEARS)            e.RELEVANT_EXP_IN_YEARS = "Required";
-    if (!formData.SALARY_CURRENCY_ID)               e.SALARY_CURRENCY_ID    = "Required";
-    if (!formData.CURRENT_SALARY_PA)                e.CURRENT_SALARY_PA     = "Required";
-    if (!formData.EXPECTED_SALARY_PA)               e.EXPECTED_SALARY_PA    = "Required";
-    if (!formData.PROFILE_AVAILABILITY)             e.PROFILE_AVAILABILITY  = "Required";
-    if (!formData.TAX_TERMS)                        e.TAX_TERMS             = "Required";
-    if (!formData.VENDOR_ID)                        e.VENDOR_ID             = "Required";
+    if (e.DEMAND_ID) e.DEMAND_ID = "Please select a demand";
+    if (e.PROFILE_NAME) e.PROFILE_NAME = "Name is required";
+    if (e.PROFILE_EMAIL) e.PROFILE_EMAIL = "Email is required";
+    if (formData.PROFILE_EMAIL.trim() && !emailRe.test(formData.PROFILE_EMAIL)) {
+      e.PROFILE_EMAIL = "Invalid email format";
+    }
+    if (e.CURRENT_LOCATION) e.CURRENT_LOCATION = "Required";
+    if (e.CURRENT_COMPANY) e.CURRENT_COMPANY = "Required";
+    if (e.PREFERRED_LOCATION) e.PREFERRED_LOCATION = "Required";
+    if (e.WORK_MODE_ID) e.WORK_MODE_ID = "Required";
+    if (e.WORK_EXP_IN_YEARS) e.WORK_EXP_IN_YEARS = "Required";
+    if (e.RELEVANT_EXP_IN_YEARS) e.RELEVANT_EXP_IN_YEARS = "Required";
+    if (e.SALARY_CURRENCY_ID) e.SALARY_CURRENCY_ID = "Required";
+    if (e.CURRENT_SALARY_PA) e.CURRENT_SALARY_PA = "Required";
+    if (e.EXPECTED_SALARY_PA) e.EXPECTED_SALARY_PA = "Required";
+    if (e.PROFILE_AVAILABILITY) e.PROFILE_AVAILABILITY = "Required";
+    if (e.TAX_TERMS) e.TAX_TERMS = "Required";
+    if (e.VENDOR_ID) e.VENDOR_ID = "Required";
 
     setErrors(e);
     return Object.keys(e).length === 0;

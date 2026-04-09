@@ -54,8 +54,8 @@ export const postRequest = async (url, data) => {
 
 export const getProfiles = async () => {
   try {
-    const data = await getRequest(API_ENDPOINTS.DASHBOARD);
-    return data.items || [];
+    const data = await getRequest(API_ENDPOINTS.CUSTOMERS);
+    return data.items || (Array.isArray(data) ? data : []);
   } catch (error) {
     console.error('API Error:', error);
     throw error;
