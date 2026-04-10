@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { getCustomerDetails } from "../../../services/customerDetailService";
 import { getDemandDownloadUrl } from "../../../services/demandService";
+import { getProfileDownloadUrl } from "../../../services/profileDownloadService";
 import {
   ArrowLeft, Pencil, Eye,
   ChevronLeft, ChevronRight, Plus,
@@ -30,7 +31,7 @@ const TABS = [
 
 const PAGE_SIZE = 15;
 
-// ── Pagination ─────────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Pagination ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 const Pagination = ({ total, page, onPage }) => {
   if (total <= PAGE_SIZE) return null;
   const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -38,7 +39,7 @@ const Pagination = ({ total, page, onPage }) => {
   return (
     <div className="pagination">
       <span className="page-info">
-        {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
+        {(page - 1) * PAGE_SIZE + 1}ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“{Math.min(page * PAGE_SIZE, total)} of {total}
       </span>
       <div className="page-btns">
         <button className="page-btn" onClick={() => onPage(page - 1)} disabled={page === 1}>
@@ -66,7 +67,7 @@ const getContactId = (contact) =>
   contact?.CONTACT_ID ||
   null;
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
 const CustomerDetail = () => {
   const { id }    = useParams();
   const { state } = useLocation();
@@ -139,7 +140,7 @@ const CustomerDetail = () => {
 
   const showSection = (key) => activeTab === "all" || activeTab === key;
 
-  // ── Quick actions list ─────────────────────────────────────────────────
+  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Quick actions list ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
   const quickActions = [
     { label: "Add Contact",icon: <UserPlus  size={14} />, action: () => { setShowActions(false); setEditingContact(null); setShowAddContact(true); } },
     { label: "Add Demand", icon: <Briefcase size={14} />, action: () => { setShowActions(false); setShowAddDemand(true); } },
@@ -168,6 +169,25 @@ const CustomerDetail = () => {
       window.open(response.download_url, "_blank", "noopener,noreferrer");
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to download file.");
+    }
+  };
+
+  const handleProfileDownload = async (profileId) => {
+    if (!profileId) {
+      toast.error("Profile ID not found for this row.");
+      return;
+    }
+
+    try {
+      const response = await getProfileDownloadUrl(profileId);
+      if (!response.success || !response.download_url) {
+        toast.error(response.message || "Failed to generate download link.");
+        return;
+      }
+
+      window.open(response.download_url, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to download profile.");
     }
   };
 
@@ -202,18 +222,18 @@ const CustomerDetail = () => {
   return (
     <div className="detail-page">
 
-      {/* ── Header ── */}
+      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Header ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
       <div className="detail-header">
         <div className="detail-header-left">
           <button className="btn-icon" onClick={() => navigate("/")}>
             <ArrowLeft size={18} /> Back
           </button>
           <h1 className="ats-heading-1">
-            {cardData.customer_name || customer.customer_name || "—"}
+            {cardData.customer_name || customer.customer_name || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}
           </h1>
         </div>
 
-        {/* ── Header Right: Edit + Quick Actions ── */}
+        {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Header Right: Edit + Quick Actions ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
         <div className="header-actions">
           <button className="btn-primary" onClick={() => navigate(`/customers/${id}/edit`)}>
             <Pencil size={14} style={{ marginRight: 6 }} />
@@ -243,7 +263,7 @@ const CustomerDetail = () => {
         </div>
       </div>
 
-      {/* ── Stats Bar ── */}
+      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Stats Bar ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
       <div className="detail-stats-bar">
         <span><strong>Total Active Demands:</strong> {cardData.total_active_demands ?? 0}</span>
         <span className="stat-divider">|</span>
@@ -256,7 +276,7 @@ const CustomerDetail = () => {
         <span><strong>Billing Loss:</strong> {cardData.billing_loss ?? 0}</span>
       </div>
 
-      {/* ── Tabs ── */}
+      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Tabs ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
       <div className="detail-tabs">
         {TABS.map((tab) => (
           <button
@@ -269,16 +289,16 @@ const CustomerDetail = () => {
         ))}
       </div>
 
-      {/* ── Content ── */}
-        <div className="detail-content">
-          {loading ? (
-          <Loader message="Loading customer details..." />
-          ) : error ? (
-            <div className="error">{error}</div>
+      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Content ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
+      <div className="detail-content">
+        {loading ? (
+          <div className="loading">Loading customer details...</div>
+        ) : error ? (
+          <div className="error">{error}</div>
         ) : (
           <>
 
-            {/* ══ CUSTOMER DETAILS ══ */}
+            {/* ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â CUSTOMER DETAILS ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â */}
             {showSection("details") && (
               <div className="detail-section">
                 <h3 className="detail-section-title">Customer Details</h3>
@@ -298,19 +318,19 @@ const CustomerDetail = () => {
                     </thead>
                     <tbody>
                       <tr>
-                        <td>{customer.customer_name || cardData.customer_name || "—"}</td>
-                        <td><span className="t-badge">{customer.customer_code || "—"}</span></td>
-                        <td>{customer.country_name  || "—"}</td>
-                        <td>{customer.region_name   || "—"}</td>
-                        <td>{customer.industry_name || cardData.industry_name || "—"}</td>
-                        <td>{customer.type_name     || "—"}</td>
-                        <td>{customer.engagement_type_name || "—"}</td>
+                        <td>{customer.customer_name || cardData.customer_name || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                        <td><span className="t-badge">{customer.customer_code || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</span></td>
+                        <td>{customer.country_name  || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                        <td>{customer.region_name   || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                        <td>{customer.industry_name || cardData.industry_name || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                        <td>{customer.type_name     || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                        <td>{customer.engagement_type_name || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
                         <td>
                           {customer.website ? (
                             <a href={customer.website} target="_blank" rel="noreferrer" className="t-link">
                               {customer.website}
                             </a>
-                          ) : "—"}
+                          ) : "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}
                         </td>
                       </tr>
                     </tbody>
@@ -319,7 +339,7 @@ const CustomerDetail = () => {
               </div>
             )}
 
-            {/* ══ CONTACTS ══ */}
+            {/* ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â CONTACTS ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â */}
             {showSection("contacts") && (
               <div className="detail-section">
                 <h3 className="detail-section-title">
@@ -366,10 +386,10 @@ const CustomerDetail = () => {
                                 </button>
                               </div>
                             </td>
-                            <td>{c.contact_name || "—"}</td>
-                            <td>{c.designation  || "—"}</td>
-                            <td>{c.contact_no   || "—"}</td>
-                            <td>{c.email || c.email_id || "—"}</td>
+                            <td>{c.contact_name || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                            <td>{c.designation  || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                            <td>{c.contact_no   || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                            <td>{c.email || c.email_id || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -379,7 +399,7 @@ const CustomerDetail = () => {
               </div>
             )}
 
-            {/* ══ DEMAND REQUEST ══ */}
+            {/* ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â DEMAND REQUEST ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â */}
             {showSection("demands") && (
               <div className="detail-section">
               <h3 className="detail-section-title">
@@ -422,22 +442,22 @@ const CustomerDetail = () => {
                                   <button className="action-btn edit" title="Edit" onClick={() => setEditDemandId(d.demand_id)}><Pencil size={13} /></button>
                                 </div>
                               </td>
-                              <td><span className="t-badge">{d.demand_code || "—"}</span></td>
-                              <td>{d.demand_type || "—"}</td>
-                              <td>{d.job_type_name  || d.job_type_id  || "—"}</td>
-                              <td>{d.job_role       || "—"}</td>
-                              <td>{d.no_of_position ?? "—"}</td>
-                              <td>{d.work_mode_name || d.work_mode_id || "—"}</td>
-                              <td>{d.demand_date    || "—"}</td>
-                              <td>{d.billable_date  || "—"}</td>
-                              <td>{d.decision_status_name || d.des_status_id || "—"}</td>
+                              <td><span className="t-badge">{d.demand_code || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</span></td>
+                              <td>{d.demand_type || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td>{d.job_type_name  || d.job_type_id  || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td>{d.job_role       || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td>{d.no_of_position ?? "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td>{d.work_mode_name || d.work_mode_id || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td>{d.demand_date    || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td>{d.billable_date  || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td>{d.decision_status_name || d.des_status_id || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
                               <td>
                                 <span className={`t-status ${d.demand_status?.toLowerCase()}`}>
-                                  {d.demand_status || "—"}
+                                  {d.demand_status || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}
                                 </span>
                               </td>
-                              <td>{d.demand_ageing  ?? "—"}</td>
-                              <td>{d.billing_ageing ?? "—"}</td>
+                              <td>{d.demand_ageing  ?? "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td>{d.billing_ageing ?? "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
                               <td>
                                 {d.file_name ? (
                                   <button
@@ -447,9 +467,9 @@ const CustomerDetail = () => {
                                   >
                                     Download
                                   </button>
-                                ) : "—"}
+                                ) : "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}
                               </td>
-                              <td>{d.assigned_to_name || d.assigned_to || "—"}</td>
+                              <td>{d.assigned_to_name || d.assigned_to || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -461,7 +481,7 @@ const CustomerDetail = () => {
               </div>
             )}
 
-            {/* ══ DEMAND PROFILE MAPPING ══ */}
+            {/* ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â DEMAND PROFILE MAPPING ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â */}
             {showSection("profiles") && (
               <div className="detail-section">
               <h3 className="detail-section-title">
@@ -512,38 +532,44 @@ const CustomerDetail = () => {
                                 </div>
                               </td>
                               <td>
-                                <span className="t-badge">{p.demand_code || "—"}</span>
+                                <span className="t-badge">{p.demand_code || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</span>
                                 {p.demand_name && (
                                   <span style={{ marginLeft: 6, color: "var(--ats-neutral)", fontSize: 12 }}>
                                     {p.demand_name}
                                   </span>
                                 )}
                               </td>
-                              <td><span className="t-badge">{p.profile_code || "—"}</span></td>
-                              <td>{p.profile_name || "—"}</td>
+                              <td><span className="t-badge">{p.profile_code || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</span></td>
+                              <td>{p.profile_name || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
                               <td>
-                                <span className={`t-source ${p.source?.toLowerCase()}`}>{p.source || "—"}</span>
+                                <span className={`t-source ${p.source?.toLowerCase()}`}>{p.source || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</span>
                               </td>
                               <td>
                                 {p.ai_profile_score ? (
                                   <span className="match-score">{p.ai_profile_score}</span>
-                                ) : "—"}
+                                ) : "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}
                               </td>
-                              <td>{p.work_mode_name     || "—"}</td>
-                              <td>{p.current_company    || "—"}</td>
-                              <td>{p.preferred_location || "—"}</td>
-                              <td>{p.profile_availability || "—"}</td>
+                              <td>{p.work_mode_name     || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td>{p.current_company    || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td>{p.preferred_location || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td>{p.profile_availability || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
                               <td>
                                 {p.profile_status_name ? (
                                   <span className="t-status-profile">{p.profile_status_name}</span>
-                                ) : "—"}
+                                ) : "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}
                               </td>
-                              <td>{p.profile_contact_no || "—"}</td>
-                              <td>{p.vendor_name        || "—"}</td>
-                              <td>{p.profile_email      || "—"}</td>
+                              <td>{p.profile_contact_no || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td>{p.vendor_name        || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td>{p.profile_email      || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
                               <td>
-                                {p.file_name ? (
-                                  <a href={p.file_name} target="_blank" rel="noreferrer" className="t-link">Download</a>
+                                {p.profile_id ? (
+                                  <button
+                                    type="button"
+                                    className="table-link-btn"
+                                    onClick={() => handleProfileDownload(p.profile_id)}
+                                  >
+                                    Download
+                                  </button>
                                 ) : "—"}
                               </td>
                             </tr>
@@ -557,7 +583,7 @@ const CustomerDetail = () => {
               </div>
             )}
 
-            {/* ══ DEMAND MAIL TO VENDOR ══ */}
+            {/* ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â DEMAND MAIL TO VENDOR ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â */}
             {showSection("emails") && (
               <div className="detail-section">
                 <h3 className="detail-section-title">
@@ -586,13 +612,13 @@ const CustomerDetail = () => {
                         <tbody>
                           {emailsSlice.map((e, i) => (
                             <tr key={i}>
-                              <td>{e.vendor_name   || "—"}</td>
-                              <td>{e.demand_name   || "—"}</td>
-                              <td>{e.location_type || "—"}</td>
-                              <td>{e.type          || "—"}</td>
-                              <td>{e.currency      || "—"}</td>
-                              <td>{e.max           ?? "—"}</td>
-                              <td>{e.send_date     || "—"}</td>
+                              <td>{e.vendor_name   || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td>{e.demand_name   || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td>{e.location_type || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td>{e.type          || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td>{e.currency      || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td>{e.max           ?? "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td>{e.send_date     || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -607,7 +633,7 @@ const CustomerDetail = () => {
         )}
       </div>
 
-      {/* ══ ADD CONTACT MODAL ══ */}
+      {/* ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â ADD CONTACT MODAL ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â */}
       <AddContactModal
         isOpen={showAddContact}
         onClose={() => { setShowAddContact(false); setEditingContact(null); }}
@@ -705,7 +731,7 @@ const CustomerDetail = () => {
           padding: 32px 24px;
         }
 
-        /* ── Header ── */
+        /* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Header ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */
         .detail-header {
           display: flex;
           justify-content: space-between;
@@ -721,7 +747,7 @@ const CustomerDetail = () => {
           gap: 20px;
         }
 
-        /* ── Header right: Edit + Actions dropdown ── */
+        /* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Header right: Edit + Actions dropdown ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */
         .header-actions {
           display: flex;
           align-items: center;
@@ -799,7 +825,7 @@ const CustomerDetail = () => {
           color: var(--ats-primary);
         }
 
-        /* ── Stats Bar ── */
+        /* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Stats Bar ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */
         .detail-stats-bar {
           display: flex;
           align-items: center;
@@ -820,7 +846,7 @@ const CustomerDetail = () => {
         .detail-stats-bar strong { color: var(--ats-primary); }
         .stat-divider { color: var(--ats-border); font-size: 18px; }
 
-        /* ── Tabs ── */
+        /* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Tabs ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */
         .detail-tabs {
           display: flex;
           gap: 0;
@@ -855,7 +881,7 @@ const CustomerDetail = () => {
           font-weight: 600;
         }
 
-        /* ── Content ── */
+        /* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Content ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */
         .detail-content { max-width: 1440px; margin: 0 auto; }
         .detail-section {
           background: #ffffff;
@@ -918,7 +944,7 @@ const CustomerDetail = () => {
           font-family: 'Inter', sans-serif;
         }
 
-        /* ── Table ── */
+        /* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Table ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */
         .ats-table-wrap {
           width: 100%;
           overflow-x: auto;
@@ -1074,7 +1100,7 @@ const CustomerDetail = () => {
         }
         .table-link-btn:hover { text-decoration: underline; }
 
-        /* ── Pagination ── */
+        /* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Pagination ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */
         .pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 4px 0; font-family: 'Inter', sans-serif; }
         .page-info { font-size: 13px; color: var(--ats-secondary); }
         .page-btns { display: flex; align-items: center; gap: 4px; }

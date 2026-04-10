@@ -38,6 +38,7 @@ export const API_ENDPOINTS = Object.freeze({
   CUSTOMER_REJECTED_REPORT: '/reports/customerrejectedreport',
   VENDOR_MASTER_LIST: '/getvendors/vendorlist',
   ADD_VENDOR: '/addvendors/vendor',
+  DOWNLOAD_PROFILE: '/downloadprofile/profile',
   SEND_VENDOR_EMAIL: '/vendor-email/send',
 });
 

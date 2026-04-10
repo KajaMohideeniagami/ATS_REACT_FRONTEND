@@ -8,6 +8,7 @@ const CustomerCard = ({ customer, onCardClick }) => {
     .replace(/\s+/g, '')
     .slice(0, 4)
     .toUpperCase();
+
   const stats = [
     { label: 'Active', value: customer.total_active_demands || 0 },
     { label: 'Open', value: customer.open_positions || 0 },
@@ -16,21 +17,38 @@ const CustomerCard = ({ customer, onCardClick }) => {
     { label: 'Billing Loss', value: customer.billing_loss || 0, wide: true },
   ];
 
-  const handleClick = () => {
+  const handleOpen = (event) => {
+    event.stopPropagation();
     if (onCardClick) onCardClick(customer);
     navigate(`/customers/${customer.customer_id}`, {
-      state: { customer }  // Pass full customer object — stats load instantly
+      state: { customer },
     });
   };
 
+  const handleClick = () => {
+    if (onCardClick) onCardClick(customer);
+  };
+
   return (
-    <div className="customer-card" onClick={handleClick}>
-      <div className="card-header">
-        <div className="customer-avatar">{customerBadge}</div>
-        <div className="customer-title">
-          <h3 className="customer-name">{customer.customer_name}</h3>
-          <p className="industry-name">{customer.industry_name || 'Industry not available'}</p>
+    <div
+      className="customer-card customer-card-static"
+      onClick={handleClick}
+      role="button"
+      tabIndex={0}
+      aria-label={`Customer card for ${customer.customer_name}`}
+    >
+      <div className="back-header customer-static-header">
+        <div className="customer-back-title">
+          <div className="customer-avatar">{customerBadge}</div>
+          <div className="customer-back-heading">
+            <p className="industry-name">Customer Metrics</p>
+            <h3 className="customer-name">{customer.customer_name}</h3>
+          </div>
         </div>
+
+        <button type="button" className="customer-open-btn" onClick={handleOpen}>
+          Open
+        </button>
       </div>
 
       <div className="card-stats">

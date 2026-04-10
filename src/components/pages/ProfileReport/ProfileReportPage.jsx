@@ -17,6 +17,7 @@ import {
   getProfileReportRows,
   getProfileReportVendors,
 } from '../../../services/profileReportService';
+import { getProfileDownloadUrl } from '../../../services/profileDownloadService';
 import '../../../global.css';
 
 const STATUS_OPTIONS = ['All', 'Open', 'Closed', 'Hold', 'Lost'];
@@ -95,7 +96,7 @@ const getStatusTone = (value) => {
 
 const isDateColumn = (columnKey) => normalize(columnKey).includes('date');
 
-const renderCellValue = (columnKey, value) => {
+const renderCellValue = (columnKey, value, row) => {
   const normalizedColumnKey = normalize(columnKey);
 
   if (normalizedColumnKey === 'result sign' || normalizedColumnKey === 'result_sign') {
@@ -117,6 +118,31 @@ const renderCellValue = (columnKey, value) => {
 
   if (isDateColumn(columnKey)) {
     return formatDate(value);
+  }
+
+  if (normalizedColumnKey === 'download' || normalizedColumnKey === 'download profile') {
+    const profileId = row?.profile_id ?? row?.profileId ?? value?.profile_id ?? value?.profileId ?? value;
+
+    return profileId ? (
+      <button
+        type="button"
+        className="table-link-btn"
+        onClick={async () => {
+          try {
+            const response = await getProfileDownloadUrl(profileId);
+            if (!response.success || !response.download_url) {
+              toast.error(response.message || 'Failed to generate download link.');
+              return;
+            }
+            window.open(response.download_url, '_blank', 'noopener,noreferrer');
+          } catch (downloadError) {
+            toast.error(downloadError.response?.data?.message || 'Failed to download profile.');
+          }
+        }}
+      >
+        Download
+      </button>
+    ) : '-';
   }
 
   return formatCell(value);
@@ -603,7 +629,7 @@ const ProfileReportPage = () => {
                     <tr key={getValue(row, ['profile_id', 'profileId', 'profile_code']) || `${currentPage}-${index}`}>
                       {activeColumns.map((column) => (
                         <td key={`${getValue(row, ['profile_id', 'profileId', 'profile_code']) || index}-${column}`}>
-                          {renderCellValue(column, row?.[column])}
+                          {renderCellValue(column, row?.[column], row)}
                         </td>
                       ))}
                     </tr>
