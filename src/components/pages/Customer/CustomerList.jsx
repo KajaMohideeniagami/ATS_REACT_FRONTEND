@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Handshake, LogOut } from 'lucide-react';
+import { Handshake } from 'lucide-react';
 import CustomerCard from './CustomerCard';
+import Loader from '../../common/Loader';
 import { getProfiles } from '../../../services/api';
 import '../../../global.css';
 
@@ -39,7 +40,7 @@ const CustomerList = () => {
   if (loading) {
     return (
       <div className="customer-list-container">
-        <div className="loading">Loading customers...</div>
+        <Loader message="Loading customers..." />
       </div>
     );
   }

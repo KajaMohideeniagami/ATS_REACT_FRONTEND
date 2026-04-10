@@ -10,6 +10,7 @@ import {
   RotateCcw,
   Search,
 } from 'lucide-react';
+import Loader from '../../common/Loader';
 import { toast } from '../../../components/Toast';
 import { getCandidateReportCustomers, getCandidateReportRows } from '../../../services/candidateReportService';
 import '../../../global.css';
@@ -347,7 +348,7 @@ const CandidateReportPage = ({ title, endpoint, storageKey, description }) => {
   if (loading) {
     return (
       <div className="customer-list-container">
-        <div className="loading">Loading {title.toLowerCase()}...</div>
+        <Loader message={`Loading ${title.toLowerCase()}...`} />
       </div>
     );
   }

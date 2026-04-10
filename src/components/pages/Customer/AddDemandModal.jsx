@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { X, Upload, Zap } from 'lucide-react';
 import { addDemand, extractJD, uploadDemandFiles } from '../../../services/demandService';
+import Loader from '../../common/Loader';
 import { toast } from '../../toast/index';
 import axios from 'axios';
 import { API_BASE_URL, LOV_ENDPOINTS } from '../../../config/apiConfig';
+import { attachGlobalLoaderInterceptors } from '../../../services/httpLoader';
 import { validateRequiredFields } from '../../../utils/formValidation';
 import mammoth from 'mammoth';
 
@@ -27,6 +29,8 @@ const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
 });
+
+attachGlobalLoaderInterceptors(api);
 
 const getLovData = async (path) => {
   try {
@@ -416,7 +420,7 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
         {/* Body */}
         <div className="dm-body">
           {lovLoading ? (
-            <div className="loading-message">Loading form data...</div>
+            <Loader inline message="Loading form data..." />
           ) : (
             <form id="add-demand-form" onSubmit={handleSubmit}>
 

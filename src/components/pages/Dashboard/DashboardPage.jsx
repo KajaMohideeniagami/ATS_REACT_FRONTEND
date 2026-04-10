@@ -11,6 +11,7 @@ import {
   UserCheck,
   AlertTriangle,
 } from 'lucide-react';
+import Loader from '../../common/Loader';
 import { getDashboardSummary } from '../../../services/dashboardService';
 import '../../../global.css';
 
@@ -91,7 +92,9 @@ const DashboardPage = () => {
     <div className="dashboard-page">
       <div className="dashboard-shell">
         {loading ? (
-          <div className="dashboard-state-card">Loading dashboard metrics...</div>
+          <div className="dashboard-state-card">
+            <Loader message="Loading dashboard metrics..." />
+          </div>
         ) : error ? (
           <div className="dashboard-state-card error">{error}</div>
         ) : (

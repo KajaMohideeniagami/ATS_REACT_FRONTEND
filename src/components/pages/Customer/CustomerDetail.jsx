@@ -8,6 +8,7 @@ import {
   UserPlus, Briefcase, User, Activity, Mail,
   ChevronDown, Trash2
 } from "lucide-react";
+import Loader from "../../common/Loader";
 import "../../../global.css";
 import AddContactModal from './AddContactModal';
 import AddDemandModal from './AddDemandModal';
@@ -269,11 +270,11 @@ const CustomerDetail = () => {
       </div>
 
       {/* ── Content ── */}
-      <div className="detail-content">
-        {loading ? (
-          <div className="loading">Loading customer details...</div>
-        ) : error ? (
-          <div className="error">{error}</div>
+        <div className="detail-content">
+          {loading ? (
+          <Loader message="Loading customer details..." />
+          ) : error ? (
+            <div className="error">{error}</div>
         ) : (
           <>
 

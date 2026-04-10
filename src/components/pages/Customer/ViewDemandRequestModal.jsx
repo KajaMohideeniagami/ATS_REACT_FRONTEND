@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { X } from "lucide-react";
+import Loader from "../../common/Loader";
 import { API_BASE_URL, LOV_ENDPOINTS } from "../../../config/apiConfig";
 import { getDemandDetails } from "../../../services/demandService";
+import { attachGlobalLoaderInterceptors } from "../../../services/httpLoader";
 import { toast } from "../../toast/index";
 
 const api = axios.create({
@@ -13,6 +15,8 @@ const api = axios.create({
     Accept: "application/json",
   },
 });
+
+attachGlobalLoaderInterceptors(api);
 
 const getLovData = async (path) => {
   try {
@@ -159,7 +163,7 @@ const ViewDemandRequestModal = ({ isOpen, onClose, customerId, demandId }) => {
         </div>
         <div className="vdr-body">
           {loading || !mapped ? (
-            <div className="loading-message">Loading demand details...</div>
+            <Loader inline message="Loading demand details..." />
           ) : (
             <div className="vdr-grid">
               <ReadField label="Demand Type" value={mapped.demandType} />

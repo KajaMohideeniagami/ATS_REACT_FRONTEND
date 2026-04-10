@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Filter, RefreshCw, X } from 'lucide-react';
+import Loader from '../../common/Loader';
 import { toast } from '../../toast/index';
 import {
   getExecutiveDashboardCustomers,
@@ -142,7 +143,7 @@ const ReportTable = ({ title, columns, rows, accentClass = '', loading = false, 
           {loading ? (
             <tr>
               <td className="executive-report-empty" colSpan={columns.length}>
-                Loading...
+                <Loader inline message="Loading..." />
               </td>
             </tr>
           ) : errorMessage ? (
@@ -314,7 +315,7 @@ const OpenDemandSummaryTable = ({
             {loading ? (
               <tr>
                 <td className="executive-report-empty" colSpan={5}>
-                  Loading...
+                  <Loader inline message="Loading..." />
                 </td>
               </tr>
             ) : errorMessage ? (
@@ -418,7 +419,7 @@ const AnalysisTableCard = ({
           {loading ? (
             <tr>
               <td className="executive-report-empty" colSpan={columns.length}>
-                Loading...
+                <Loader inline message="Loading..." />
               </td>
             </tr>
           ) : errorMessage ? (
@@ -489,7 +490,9 @@ const DemandAgeingDetailsModal = ({
               <tbody>
                 {loading ? (
                   <tr>
-                    <td className="executive-report-empty" colSpan={3}>Loading...</td>
+                    <td className="executive-report-empty" colSpan={3}>
+                      <Loader inline message="Loading..." />
+                    </td>
                   </tr>
                 ) : errorMessage ? (
                   <tr>

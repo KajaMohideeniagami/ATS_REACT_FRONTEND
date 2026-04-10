@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Building2, ChevronDown, Plus, RefreshCw, Search, X } from 'lucide-react';
+import Loader from '../../common/Loader';
 import { toast } from '../../../components/Toast';
 import { getCountries } from '../../../services/lovService';
 import { createVendor, getVendorMasterList } from '../../../services/vendorMasterService';
@@ -269,7 +270,7 @@ const VendorMasterPage = () => {
   if (loading) {
     return (
       <div className="customer-list-container">
-        <div className="loading">Loading vendor master...</div>
+        <Loader message="Loading vendor master..." />
       </div>
     );
   }

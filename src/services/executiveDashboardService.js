@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_BASE_URL, API_ENDPOINTS, LOV_ENDPOINTS } from '../config/apiConfig';
+import { attachGlobalLoaderInterceptors } from './httpLoader';
 
 const executiveDashboardApi = axios.create({
   baseURL: API_BASE_URL,
@@ -9,6 +10,7 @@ const executiveDashboardApi = axios.create({
     Accept: 'application/json',
   },
 });
+attachGlobalLoaderInterceptors(executiveDashboardApi);
 
 const extractList = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -16,6 +18,10 @@ const extractList = (payload) => {
   if (Array.isArray(payload?.data)) return payload.data;
   if (Array.isArray(payload?.records)) return payload.records;
   return [];
+};
+
+const EXECUTIVE_DASHBOARD_REQUEST_CONFIG = {
+  skipGlobalLoader: true,
 };
 
 const normalizeOption = (item) => {
@@ -228,7 +234,10 @@ const buildParams = ({
 };
 
 export const getExecutiveDashboardCustomers = async () => {
-  const response = await executiveDashboardApi.get(API_ENDPOINTS.DEMAND_REPORT_CUSTOMERS);
+  const response = await executiveDashboardApi.get(
+    API_ENDPOINTS.DEMAND_REPORT_CUSTOMERS,
+    EXECUTIVE_DASHBOARD_REQUEST_CONFIG
+  );
 
   return extractList(response.data)
     .map(normalizeOption)
@@ -237,7 +246,10 @@ export const getExecutiveDashboardCustomers = async () => {
 };
 
 export const getExecutiveDashboardDemandTypes = async () => {
-  const response = await executiveDashboardApi.get(LOV_ENDPOINTS.DEMAND_TYPES);
+  const response = await executiveDashboardApi.get(
+    LOV_ENDPOINTS.DEMAND_TYPES,
+    EXECUTIVE_DASHBOARD_REQUEST_CONFIG
+  );
 
   return extractList(response.data)
     .map(normalizeOption)
@@ -246,7 +258,10 @@ export const getExecutiveDashboardDemandTypes = async () => {
 };
 
 export const getExecutiveDashboardYears = async () => {
-  const response = await executiveDashboardApi.get(LOV_ENDPOINTS.EXECUTIVE_DASHBOARD_YEARS);
+  const response = await executiveDashboardApi.get(
+    LOV_ENDPOINTS.EXECUTIVE_DASHBOARD_YEARS,
+    EXECUTIVE_DASHBOARD_REQUEST_CONFIG
+  );
 
   return extractList(response.data)
     .map(normalizeOption)
@@ -273,6 +288,7 @@ export const getExecutiveDashboardData = async (filters = {}) => {
 export const getExecutiveDashboardSummaryData = async (filters = {}) => {
   const response = await executiveDashboardApi.get(API_ENDPOINTS.EXECUTIVE_DASHBOARD_SUMMARY, {
     params: buildParams(filters),
+    ...EXECUTIVE_DASHBOARD_REQUEST_CONFIG,
   });
 
   const payload = response.data || {};
@@ -293,6 +309,7 @@ export const getExecutiveDashboardSummaryData = async (filters = {}) => {
 export const getExecutiveDashboardOpenDemandsData = async (filters = {}) => {
   const response = await executiveDashboardApi.get(API_ENDPOINTS.EXECUTIVE_DASHBOARD_OPEN_DEMANDS, {
     params: buildParams(filters),
+    ...EXECUTIVE_DASHBOARD_REQUEST_CONFIG,
   });
 
   const payload = response.data || {};
@@ -308,6 +325,7 @@ export const getExecutiveDashboardDemandAgeingDetails = async (filters = {}, age
       ...buildParams(filters),
       age_range: ageRange,
     },
+    ...EXECUTIVE_DASHBOARD_REQUEST_CONFIG,
   });
 
   return extractList(response.data).map(normalizeDemandAgeingDetailRow);
@@ -328,6 +346,7 @@ export const getExecutiveDashboardAnalysisData = async (filters = {}) => {
 
   const response = await executiveDashboardApi.get(API_ENDPOINTS.EXECUTIVE_DASHBOARD_ANALYSIS, {
     params,
+    ...EXECUTIVE_DASHBOARD_REQUEST_CONFIG,
   });
 
   const payload = response.data || {};
@@ -347,6 +366,7 @@ export const getExecutiveDashboardAnalysisData = async (filters = {}) => {
 export const getExecutiveDashboardTaData = async (filters = {}) => {
   const response = await executiveDashboardApi.get(API_ENDPOINTS.EXECUTIVE_DASHBOARD_TA, {
     params: buildParams(filters),
+    ...EXECUTIVE_DASHBOARD_REQUEST_CONFIG,
   });
 
   const payload = response.data || {};

@@ -10,6 +10,7 @@ import {
   RotateCcw,
   Search,
 } from 'lucide-react';
+import Loader from '../../common/Loader';
 import { toast } from '../../../components/Toast';
 import {
   getVendorReportCustomers,
@@ -356,7 +357,7 @@ const VendorReportPage = () => {
   if (loading) {
     return (
       <div className="customer-list-container">
-        <div className="loading">Loading vendor report...</div>
+        <Loader message="Loading vendor report..." />
       </div>
     );
   }

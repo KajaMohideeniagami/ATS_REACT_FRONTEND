@@ -28,6 +28,7 @@ import ProfileReportPage from './components/pages/ProfileReport/ProfileReportPag
 import VendorReportPage from './components/pages/VendorReport/VendorReportPage';
 import CandidateReportPage from './components/pages/CandidateReport/CandidateReportPage';
 import VendorMasterPage from './components/pages/VendorMaster/VendorMasterPage';
+import { LoaderProvider } from './context/LoaderContext';
 import './global.css';
 
 const NAV_ITEMS = [
@@ -204,184 +205,186 @@ const AppShell = ({ children }) => {
 
 const App = () => {
   return (
-    <Router>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
+    <LoaderProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
 
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <AppShell>
-                <DashboardPage />
-              </AppShell>
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <DashboardPage />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/executive-dashboard"
-          element={
-            <ProtectedRoute>
-              <AppShell>
-                <ExecutiveDashboardPage />
-              </AppShell>
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/executive-dashboard"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <ExecutiveDashboardPage />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <AppShell>
-                <CustomerList />
-              </AppShell>
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <CustomerList />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/customers/create"
-          element={
-            <ProtectedRoute>
-              <AppShell>
-                <CustomerCreate />
-              </AppShell>
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/customers/create"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <CustomerCreate />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/customers/:id/edit"
-          element={
-            <ProtectedRoute>
-              <AppShell>
-                <CustomerCreate />
-              </AppShell>
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/customers/:id/edit"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <CustomerCreate />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/customers/:id"
-          element={
-            <ProtectedRoute>
-              <AppShell>
-                <CustomerDetail />
-              </AppShell>
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/customers/:id"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <CustomerDetail />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/customers/:id/profile-status"
-          element={
-            <ProtectedRoute>
-              <AppShell>
-                <ProfileStatusModal />
-              </AppShell>
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/customers/:id/profile-status"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <ProfileStatusModal />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/demand-report"
-          element={
-            <ProtectedRoute>
-              <AppShell>
-                <DemandReportPage />
-              </AppShell>
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/demand-report"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <DemandReportPage />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/profile-report"
-          element={
-            <ProtectedRoute>
-              <AppShell>
-                <ProfileReportPage />
-              </AppShell>
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/profile-report"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <ProfileReportPage />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/vendor-report"
-          element={
-            <ProtectedRoute>
-              <AppShell>
-                <VendorReportPage />
-              </AppShell>
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/vendor-report"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <VendorReportPage />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/vendor-master"
-          element={
-            <ProtectedRoute>
-              <AppShell>
-                <VendorMasterPage />
-              </AppShell>
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/vendor-master"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <VendorMasterPage />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/candidate-report/onboarded"
-          element={
-            <ProtectedRoute>
-              <AppShell>
-                <CandidateReportPage
-                  title="Onboarded Report"
-                  endpoint="/reports/onboardedreport"
-                  storageKey="ats_onboarded_report_column_prefs"
-                  description="Filter and review onboarded candidate records in one place."
-                />
-              </AppShell>
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/candidate-report/onboarded"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <CandidateReportPage
+                    title="Onboarded Report"
+                    endpoint="/reports/onboardedreport"
+                    storageKey="ats_onboarded_report_column_prefs"
+                    description="Filter and review onboarded candidate records in one place."
+                  />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/candidate-report/onboarded-failed"
-          element={
-            <ProtectedRoute>
-              <AppShell>
-                <CandidateReportPage
-                  title="Onboarded Failed Report"
-                  endpoint="/reports/onboardedfailedreport"
-                  storageKey="ats_onboarded_failed_report_column_prefs"
-                  description="Filter and review failed onboarding records in one place."
-                />
-              </AppShell>
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/candidate-report/onboarded-failed"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <CandidateReportPage
+                    title="Onboarded Failed Report"
+                    endpoint="/reports/onboardedfailedreport"
+                    storageKey="ats_onboarded_failed_report_column_prefs"
+                    description="Filter and review failed onboarding records in one place."
+                  />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/candidate-report/customer-rejected"
-          element={
-            <ProtectedRoute>
-              <AppShell>
-                <CandidateReportPage
-                  title="Customer Rejected Report"
-                  endpoint="/reports/customerrejectedreport"
-                  storageKey="ats_customer_rejected_report_column_prefs"
-                  description="Filter and review customer rejected candidate records in one place."
-                />
-              </AppShell>
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/candidate-report/customer-rejected"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <CandidateReportPage
+                    title="Customer Rejected Report"
+                    endpoint="/reports/customerrejectedreport"
+                    storageKey="ats_customer_rejected_report_column_prefs"
+                    description="Filter and review customer rejected candidate records in one place."
+                  />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
 
-      <ToastContainer />
-    </Router>
+        <ToastContainer />
+      </Router>
+    </LoaderProvider>
   );
 };
 

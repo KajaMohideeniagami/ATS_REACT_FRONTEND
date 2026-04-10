@@ -2,11 +2,14 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import mammoth from 'mammoth';
 import { Upload, X, Zap } from 'lucide-react';
+import Loader from '../../common/Loader';
 import { API_BASE_URL, LOV_ENDPOINTS } from '../../../config/apiConfig';
 import { extractJD, getDemandDetails, updateDemand, uploadDemandFiles } from '../../../services/demandService';
+import { attachGlobalLoaderInterceptors } from '../../../services/httpLoader';
 import { toast } from '../../toast/index';
 
 const api = axios.create({ baseURL: API_BASE_URL, timeout: 10000 });
+attachGlobalLoaderInterceptors(api);
 
 const getLovData = async (path) => {
   try {
@@ -331,7 +334,7 @@ const EditDemandModal = ({ isOpen, onClose, onSuccess, customerId, demandId }) =
           <button type="button" className="edm-close" onClick={handleClose} aria-label="Close"><X size={18} /></button>
         </div>
         <div className="edm-body">
-          {lovLoading ? <div className="loading-message">Loading demand details...</div> : (
+          {lovLoading ? <Loader inline message="Loading demand details..." /> : (
             <form id="edit-demand-form" onSubmit={handleSubmit}>
               <div className="edm-row">
                 <Field label="Location Type *" error={errors.LOCATION_TYPE}><select name="LOCATION_TYPE" className={`form-select ${errors.LOCATION_TYPE ? 'input-error' : ''}`} value={formData.LOCATION_TYPE} onChange={handleChange}><option value="">Select Location Type</option>{locationTypes.map((item) => <option key={item.value} value={item.label || item.value}>{item.label}</option>)}</select></Field>

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_BASE_URL, API_ENDPOINTS } from '../config/apiConfig';
+import { attachGlobalLoaderInterceptors } from './httpLoader';
 
 const vendorMasterApi = axios.create({
   baseURL: API_BASE_URL,
@@ -9,6 +10,7 @@ const vendorMasterApi = axios.create({
     'Accept': 'application/json',
   },
 });
+attachGlobalLoaderInterceptors(vendorMasterApi);
 
 const extractList = (payload) => {
   if (Array.isArray(payload)) return payload;

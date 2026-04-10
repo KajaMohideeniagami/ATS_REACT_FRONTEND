@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { updateProfileStatus } from "../../../services/profileStatusService";
 import { getProfileStatuses } from "../../../services/lovService";
+import Loader from "../../common/Loader";
 import { toast } from "../../toast/index";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -77,18 +78,14 @@ const ProfileStatusTable = ({ data, reload, loading }) => {
     return (
       <div
         style={{
-          textAlign: "center",
-          padding: "48px 0",
-          color: "var(--ats-secondary)",
-          fontFamily: "Inter, sans-serif",
-          fontSize: 14,
+          padding: "32px 20px",
           background: "linear-gradient(180deg, rgba(239,246,255,0.7) 0%, #ffffff 100%)",
           border: "1px solid var(--ats-border)",
           borderRadius: 18,
           boxShadow: "0 12px 28px rgba(15, 23, 42, 0.06)",
         }}
       >
-        Loading profiles...
+        <Loader inline message="Loading profiles..." />
       </div>
     );
   }

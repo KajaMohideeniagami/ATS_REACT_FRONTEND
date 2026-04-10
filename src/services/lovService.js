@@ -1,11 +1,13 @@
 import axios from 'axios';
 import { API_BASE_URL, LOV_ENDPOINTS } from '../config/apiConfig';
+import { attachGlobalLoaderInterceptors } from './httpLoader';
 
 // Create axios instance with base URL
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
 });
+attachGlobalLoaderInterceptors(api);
 
 // LOV Service functions
 export const getIndustries = async () => {

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { createCustomer, updateCustomer } from '../../../services/customerService';
 import { getIndustries, getTypes, getEngagementTypes, getCountries } from '../../../services/lovService';
 import { getCustomerDetails } from '../../../services/customerDetailService';
+import Loader from '../../common/Loader';
 import '../../../global.css';
 import { toast } from '../../../components/toast/index';  
 import { validateRequiredFields } from '../../../utils/formValidation';
@@ -24,7 +25,6 @@ const CustomerCreate = () => {
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [lovLoading, setLovLoading] = useState(true);
   const [lovError, setLovError] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -222,7 +222,6 @@ const CustomerCreate = () => {
 
       console.log(`Customer ${isEditMode ? 'Update' : 'Creation'} Success:`, response);
 
-      setSuccess(true);
       toast.success(isEditMode ? 'Customer updated successfully!' : 'Customer created successfully!');
 
       setTimeout(() => {
@@ -288,9 +287,7 @@ const CustomerCreate = () => {
     return (
       <div className="customer-list-container">
         <div className="form-container">
-          <div className="loading-message">
-            {isEditMode ? 'Loading customer data...' : 'Loading form data...'}
-          </div>
+          <Loader message={isEditMode ? 'Loading customer data...' : 'Loading form data...'} />
         </div>
       </div>
     );
