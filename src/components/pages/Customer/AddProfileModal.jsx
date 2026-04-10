@@ -4,6 +4,7 @@ import { toast } from "../../toast/index";
 import axios from "axios";
 import { API_BASE_URL, API_ENDPOINTS, LOV_ENDPOINTS } from "../../../config/apiConfig";
 import { getDemandDetails } from "../../../services/demandService";
+import { getProfileView } from "../../../services/profileViewService";
 import { validateRequiredFields } from "../../../utils/formValidation";
 
 const api = axios.create({
@@ -84,7 +85,7 @@ const ReadField = ({ label, value }) => (
 );
 
 // ═════════════════════════════════════════════════════════════════════════════
-const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, demands = [], customerId }) => {
+const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, demands = [], customerId, editProfile = null }) => {
   const [formData,           setFormData]          = useState(initialForm);
   const [errors,             setErrors]            = useState({});
   const [loading,            setLoading]           = useState(false);
@@ -173,6 +174,82 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
       setSelectedDemandInfo(found);
     }
   }, [isOpen, demandId, demands]);
+
+  // Pre-fill form when editing
+  useEffect(() => {
+    if (!isOpen || !editProfile?.profile_id) return;
+
+    const fillFromProfile = async () => {
+      try {
+        const view = await getProfileView(editProfile.profile_id);
+        const source = view?.success === false ? editProfile : { ...editProfile, ...view };
+
+        const demandValue = source.demand_id || editProfile.demand_id || "";
+        setSelectedDemandId(demandValue ? String(demandValue) : "");
+        const found = demands.find(d => String(d.demand_id) === String(demandValue));
+        setSelectedDemandInfo(found || null);
+
+        if (customerId && demandValue) {
+          try {
+            const details = await getDemandDetails(customerId, demandValue);
+            setDemandDetails(details);
+          } catch {
+            setDemandDetails(null);
+          }
+        }
+
+        setFormData((p) => ({
+          ...p,
+          PROFILE_NAME:          source.name || source.profile_name || "",
+          PROFILE_EMAIL:         source.email || source.profile_email || "",
+          PROFILE_CONTACT_NO:    source.contact_no || source.profile_contact_no || "",
+          CURRENT_LOCATION:      source.current_location || "",
+          CURRENT_COMPANY:       source.current_company || "",
+          PREFERRED_LOCATION:    source.preferred_location || "",
+          WORK_MODE_ID:          source.work_mode || source.work_mode_id ? String(source.work_mode || source.work_mode_id) : "",
+          WORK_EXP_IN_YEARS:     source.total_exp || source.work_exp_in_years || "",
+          RELEVANT_EXP_IN_YEARS: source.relevant_exp || source.relevant_exp_in_years || "",
+          SALARY_CURRENCY_ID:    source.currency || source.salary_currency_id ? String(source.currency || source.salary_currency_id) : "",
+          CURRENT_SALARY_PA:     source.current_salary || source.current_salary_pa || "",
+          EXPECTED_SALARY_PA:    source.expected_salary || source.expected_salary_pa || "",
+          PROFILE_AVAILABILITY:  source.availability || source.profile_availability || "Serving Notice",
+          NOTICE_PERIOD_DAYS:    source.notice_period || source.notice_period_days || "",
+          NEGOTIABLE_DAYS:       source.negotiable_days || "",
+          TAX_TERMS:             source.tax_terms || "",
+          VENDOR_ID:             source.vendor_id ? String(source.vendor_id) : "",
+          NOTES:                 source.notes || "",
+          FILE_NAME:             source.file_name || "",
+          PROFILE_URL:           source.profile_url || "",
+        }));
+      } catch {
+        setFormData((p) => ({
+          ...p,
+          PROFILE_NAME:          editProfile.profile_name || "",
+          PROFILE_EMAIL:         editProfile.profile_email || "",
+          PROFILE_CONTACT_NO:    editProfile.profile_contact_no || "",
+          CURRENT_LOCATION:      editProfile.current_location || "",
+          CURRENT_COMPANY:       editProfile.current_company || "",
+          PREFERRED_LOCATION:    editProfile.preferred_location || "",
+          WORK_MODE_ID:          editProfile.work_mode_id ? String(editProfile.work_mode_id) : "",
+          WORK_EXP_IN_YEARS:     editProfile.work_exp_in_years || "",
+          RELEVANT_EXP_IN_YEARS: editProfile.relevant_exp_in_years || "",
+          SALARY_CURRENCY_ID:    editProfile.salary_currency_id ? String(editProfile.salary_currency_id) : "",
+          CURRENT_SALARY_PA:     editProfile.current_salary_pa || "",
+          EXPECTED_SALARY_PA:    editProfile.expected_salary_pa || "",
+          PROFILE_AVAILABILITY:  editProfile.profile_availability || "Serving Notice",
+          NOTICE_PERIOD_DAYS:    editProfile.notice_period_days || "",
+          NEGOTIABLE_DAYS:       editProfile.negotiable_days || "",
+          TAX_TERMS:             editProfile.tax_terms || "",
+          VENDOR_ID:             editProfile.vendor_id ? String(editProfile.vendor_id) : "",
+          NOTES:                 editProfile.notes || "",
+          FILE_NAME:             editProfile.file_name || "",
+          PROFILE_URL:           editProfile.profile_url || "",
+        }));
+      }
+    };
+
+    fillFromProfile();
+  }, [isOpen, editProfile, demands, customerId]);
 
   // ── Escape key ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -263,6 +340,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
     e.preventDefault();
     if (!validate()) return;
 
+    const isEdit = Boolean(editProfile?.profile_id);
     setLoading(true);
     try {
       const payload = {
@@ -288,9 +366,12 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
         PROFILE_URL:           formData.PROFILE_URL        || null,
         NOTES:                 formData.NOTES              || null,
       };
+      if (isEdit) {
+        payload.PROFILE_ID = Number(editProfile.profile_id);
+      }
 
       const response = await api.post(
-        API_ENDPOINTS.ADD_PROFILE,
+        isEdit ? API_ENDPOINTS.UPDATE_PROFILE : API_ENDPOINTS.ADD_PROFILE,
         payload
       );
 
@@ -298,7 +379,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
         throw new Error(response.data.message || 'Failed to add profile');
       }
 
-      const profileId = response.data.profile_id;
+      const profileId = editProfile?.profile_id || response.data.profile_id;
 
       // ✅ Upload file after profile is saved
       if (selectedFile) {
@@ -329,12 +410,12 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
         }));
       }
 
-      toast.success('Profile added successfully!');
+      toast.success(isEdit ? 'Profile updated successfully!' : 'Profile added successfully!');
       handleClose();
       onSuccess?.();
 
     } catch (err) {
-      toast.error(err?.response?.data?.message || err?.message || 'Failed to add profile.');
+      toast.error(err?.response?.data?.message || err?.message || (isEdit ? 'Failed to update profile.' : 'Failed to add profile.'));
     } finally {
       setLoading(false);
       setUploadingFile(false);
@@ -351,7 +432,9 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
 
         {/* Header */}
         <div className="dm-header">
-          <h2 className="ats-heading-2" id="modal-title">Add Profile</h2>
+          <h2 className="ats-heading-2" id="modal-title">
+            {editProfile?.profile_id ? "Edit Profile" : "Add Profile"}
+          </h2>
           <button type="button" className="dm-close" onClick={handleClose} aria-label="Close">
             <X size={18} />
           </button>
@@ -369,6 +452,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
                   className={`form-select${errors.DEMAND_ID ? " input-error" : ""}`}
                   value={selectedDemandId}
                   onChange={handleDemandChange}
+                  disabled={Boolean(editProfile?.profile_id)}
                 >
                   <option value="">Select demand</option>
                   {demands.map(d => (
@@ -680,15 +764,15 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
 
         {/* Footer */}
         <div className="dm-footer">
-          <button type="button" className="btn-secondary" onClick={handleClose}>Cancel</button>
-          <button
-            form="add-profile-form"
-            type="submit"
-            className="btn-primary"
-            disabled={loading || uploadingFile}
-          >
-            {loading ? "Saving..." : "Save Profile"}
-          </button>
+            <button type="button" className="btn-secondary" onClick={handleClose}>Cancel</button>
+            <button
+              form="add-profile-form"
+              type="submit"
+              className="btn-primary"
+              disabled={loading || uploadingFile}
+            >
+              {loading ? "Saving..." : (editProfile?.profile_id ? "Update" : "Save Profile")}
+            </button>
         </div>
 
       </div>

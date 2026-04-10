@@ -4,12 +4,14 @@ import ProfileStatusTable from "./ProfileStatusTable";
 import { getProfileStatusList } from "../../../services/profileStatusService";
 import { toast } from "../../../components/toast/index";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/apiConfig";
+import ProfileLogModal from "./ProfileLogModal";
 
 const ProfileStatus = ({ customerId, customerName, isOpen, onClose }) => {
   const [demandId, setDemandId] = useState("");
   const [demands,  setDemands]  = useState([]);
   const [data,     setData]     = useState([]);
   const [loading,  setLoading]  = useState(false);
+  const [showLog, setShowLog] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -102,16 +104,26 @@ return (
             Profile Status
           </h2>
         </div>
-        <button
-          onClick={handleClose}
-          style={{
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            width: 32, height: 32, background: "none", border: "none",
-            borderRadius: 8, cursor: "pointer", color: "var(--ats-secondary)",
-          }}
-        >
-          <X size={18} />
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => setShowLog(true)}
+            style={{ height: 32, padding: "0 12px", fontSize: 12 }}
+          >
+            Profile Log
+          </button>
+          <button
+            onClick={handleClose}
+            style={{
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              width: 32, height: 32, background: "none", border: "none",
+              borderRadius: 8, cursor: "pointer", color: "var(--ats-secondary)",
+            }}
+          >
+            <X size={18} />
+          </button>
+        </div>
       </div>
 
       {/* Demand Filter */}
@@ -156,6 +168,12 @@ return (
         )}
       </div>
     </div>
+    <ProfileLogModal
+      isOpen={showLog}
+      onClose={() => setShowLog(false)}
+      customerId={customerId}
+      demands={demands}
+    />
   </>);
 }
 

@@ -14,6 +14,7 @@ import "../../../global.css";
 import AddContactModal from './AddContactModal';
 import AddDemandModal from './AddDemandModal';
 import AddProfileModal from './AddProfileModal';
+import ViewProfileModal from './ViewProfileModal';
 import ProfileStatusModal from '../ProfileStatus/ProfileStatus';
 import SendEmailToVendorsModal from './SendEmailToVendorsModal';
 import ViewDemandRequestModal from './ViewDemandRequestModal';
@@ -39,7 +40,7 @@ const Pagination = ({ total, page, onPage }) => {
   return (
     <div className="pagination">
       <span className="page-info">
-        {(page - 1) * PAGE_SIZE + 1}ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“{Math.min(page * PAGE_SIZE, total)} of {total}
+        {(page - 1) * PAGE_SIZE + 1} - {Math.min(page * PAGE_SIZE, total)} of {total}
       </span>
       <div className="page-btns">
         <button className="page-btn" onClick={() => onPage(page - 1)} disabled={page === 1}>
@@ -67,6 +68,27 @@ const getContactId = (contact) =>
   contact?.CONTACT_ID ||
   null;
 
+const EMPTY_CELL = "-";
+const MOJIBAKE_PATTERN = /Ãƒ|Ã‚|Â|â€|â€“|â€”|â€¢|â‚¬|�/;
+
+const displayText = (value, fallback = EMPTY_CELL) => {
+  if (value === 0 || value === "0") return "0";
+
+  const text = String(value ?? "").trim();
+
+  if (!text || MOJIBAKE_PATTERN.test(text)) {
+    return fallback;
+  }
+
+  return text;
+};
+
+const displayCount = (value, fallback = EMPTY_CELL) => {
+  if (value === 0 || value === "0") return "0";
+  if (value === null || value === undefined || value === "") return fallback;
+  return displayText(value, fallback);
+};
+
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
 const CustomerDetail = () => {
   const { id }    = useParams();
@@ -85,6 +107,9 @@ const CustomerDetail = () => {
   const [showAddDemand, setShowAddDemand] = useState(false);
   const [showActions,    setShowActions]    = useState(false);
   const [showAddProfile, setShowAddProfile] = useState(false);
+  const [showViewProfile, setShowViewProfile] = useState(false);
+  const [viewProfileId, setViewProfileId] = useState(null);
+  const [editingProfile, setEditingProfile] = useState(null);
   const [showSendEmailToVendors, setShowSendEmailToVendors] = useState(false);
   const [viewDemandId, setViewDemandId] = useState(null);
   const [editDemandId, setEditDemandId] = useState(null);
@@ -142,11 +167,11 @@ const CustomerDetail = () => {
 
   // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Quick actions list ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
   const quickActions = [
-    { label: "Add Contact",icon: <UserPlus  size={14} />, action: () => { setShowActions(false); setEditingContact(null); setShowAddContact(true); } },
+    { label: "Add Contact", icon: <UserPlus size={14} />, action: () => { setShowActions(false); setEditingContact(null); setShowAddContact(true); } },
     { label: "Add Demand", icon: <Briefcase size={14} />, action: () => { setShowActions(false); setShowAddDemand(true); } },
     { label: "Add Profile", icon: <User size={14} />, action: () => { setShowActions(false); setSelectedDemandId(null); setSelectedDemandInfo(null); setShowAddProfile(true); } },
     { label: "Profile Status", icon: <Activity size={14} />, action: () => { setShowActions(false); setShowProfileStatus(true); } },
-    { label: "Send Email To Vendors", icon: <Mail size={14} />, action: () => { setShowActions(false); setShowSendEmailToVendors(true); } },
+    { label: "Send Email", icon: <Mail size={14} />, action: () => { setShowActions(false); setShowSendEmailToVendors(true); } },
   ];
 
   const handleDeleteContact = async (contact) => {
@@ -162,13 +187,13 @@ const CustomerDetail = () => {
     try {
       const response = await getDemandDownloadUrl(demandId, fileType);
       if (!response.success || !response.download_url) {
-        toast.error(response.message || "Failed to generate download link.");
+        toast.error(response.message || EMPTY_CELL);
         return;
       }
 
       window.open(response.download_url, "_blank", "noopener,noreferrer");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to download file.");
+      toast.error(err.response?.data?.message || EMPTY_CELL);
     }
   };
 
@@ -181,13 +206,13 @@ const CustomerDetail = () => {
     try {
       const response = await getProfileDownloadUrl(profileId);
       if (!response.success || !response.download_url) {
-        toast.error(response.message || "Failed to generate download link.");
+        toast.error(response.message || EMPTY_CELL);
         return;
       }
 
       window.open(response.download_url, "_blank", "noopener,noreferrer");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to download profile.");
+      toast.error(err.response?.data?.message || EMPTY_CELL);
     }
   };
 
@@ -210,10 +235,10 @@ const CustomerDetail = () => {
         setContactToDelete(null);
         loadData();
       } else {
-        toast.error(response.message || "Failed to delete contact.");
+        toast.error(response.message || EMPTY_CELL);
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to delete contact.");
+      toast.error(err.response?.data?.message || EMPTY_CELL);
     } finally {
       setDeletingContact(false);
     }
@@ -229,7 +254,7 @@ const CustomerDetail = () => {
             <ArrowLeft size={18} /> Back
           </button>
           <h1 className="ats-heading-1">
-            {cardData.customer_name || customer.customer_name || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}
+            {displayText(cardData.customer_name || customer.customer_name)}
           </h1>
         </div>
 
@@ -318,19 +343,19 @@ const CustomerDetail = () => {
                     </thead>
                     <tbody>
                       <tr>
-                        <td>{customer.customer_name || cardData.customer_name || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                        <td><span className="t-badge">{customer.customer_code || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</span></td>
-                        <td>{customer.country_name  || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                        <td>{customer.region_name   || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                        <td>{customer.industry_name || cardData.industry_name || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                        <td>{customer.type_name     || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                        <td>{customer.engagement_type_name || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                        <td>{displayText(customer.customer_name || cardData.customer_name)}</td>
+                        <td><span className="t-badge">{displayText(customer.customer_code)}</span></td>
+                        <td>{displayText(customer.country_name)}</td>
+                        <td>{displayText(customer.region_name)}</td>
+                        <td>{displayText(customer.industry_name || cardData.industry_name)}</td>
+                        <td>{displayText(customer.type_name)}</td>
+                        <td>{displayText(customer.engagement_type_name)}</td>
                         <td>
-                          {customer.website ? (
+                          {displayText(customer.website, "") ? (
                             <a href={customer.website} target="_blank" rel="noreferrer" className="t-link">
-                              {customer.website}
+                              {displayText(customer.website)}
                             </a>
-                          ) : "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}
+                          ) : EMPTY_CELL}
                         </td>
                       </tr>
                     </tbody>
@@ -386,10 +411,10 @@ const CustomerDetail = () => {
                                 </button>
                               </div>
                             </td>
-                            <td>{c.contact_name || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                            <td>{c.designation  || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                            <td>{c.contact_no   || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                            <td>{c.email || c.email_id || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                            <td>{displayText(c.contact_name)}</td>
+                            <td>{displayText(c.designation)}</td>
+                            <td>{displayText(c.contact_no)}</td>
+                            <td>{displayText(c.email || c.email_id)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -442,22 +467,22 @@ const CustomerDetail = () => {
                                   <button className="action-btn edit" title="Edit" onClick={() => setEditDemandId(d.demand_id)}><Pencil size={13} /></button>
                                 </div>
                               </td>
-                              <td><span className="t-badge">{d.demand_code || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</span></td>
-                              <td>{d.demand_type || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                              <td>{d.job_type_name  || d.job_type_id  || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                              <td>{d.job_role       || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                              <td>{d.no_of_position ?? "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                              <td>{d.work_mode_name || d.work_mode_id || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                              <td>{d.demand_date    || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                              <td>{d.billable_date  || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                              <td>{d.decision_status_name || d.des_status_id || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td><span className="t-badge">{displayText(d.demand_code)}</span></td>
+                              <td>{displayText(d.demand_type)}</td>
+                              <td>{displayText(d.job_type_name || d.job_type_id)}</td>
+                              <td>{displayText(d.job_role)}</td>
+                              <td>{displayCount(d.no_of_position)}</td>
+                              <td>{displayText(d.work_mode_name || d.work_mode_id)}</td>
+                              <td>{displayText(d.demand_date)}</td>
+                              <td>{displayText(d.billable_date)}</td>
+                              <td>{displayText(d.decision_status_name || d.des_status_id)}</td>
                               <td>
                                 <span className={`t-status ${d.demand_status?.toLowerCase()}`}>
-                                  {d.demand_status || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}
+                                  {displayText(d.demand_status)}
                                 </span>
                               </td>
-                              <td>{d.demand_ageing  ?? "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                              <td>{d.billing_ageing ?? "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td>{displayCount(d.demand_ageing)}</td>
+                              <td>{displayCount(d.billing_ageing)}</td>
                               <td>
                                 {d.file_name ? (
                                   <button
@@ -467,9 +492,9 @@ const CustomerDetail = () => {
                                   >
                                     Download
                                   </button>
-                                ) : "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}
+                                ) : EMPTY_CELL}
                               </td>
-                              <td>{d.assigned_to_name || d.assigned_to || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td>{displayText(d.assigned_to_name || d.assigned_to)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -527,40 +552,58 @@ const CustomerDetail = () => {
                             <tr key={i}>
                               <td className="col-actions">
                                 <div className="action-btns">
-                                  <button className="action-btn view" title="View"><Eye    size={13} /></button>
-                                  <button className="action-btn edit" title="Edit"><Pencil size={13} /></button>
+                                  <button
+                                    className="action-btn view"
+                                    title="View"
+                                    onClick={() => {
+                                      setViewProfileId(p.profile_id);
+                                      setShowViewProfile(true);
+                                    }}
+                                  >
+                                    <Eye size={13} />
+                                  </button>
+                                  <button
+                                    className="action-btn edit"
+                                    title="Edit"
+                                    onClick={() => {
+                                      setEditingProfile(p);
+                                      setShowAddProfile(true);
+                                    }}
+                                  >
+                                    <Pencil size={13} />
+                                  </button>
                                 </div>
                               </td>
                               <td>
-                                <span className="t-badge">{p.demand_code || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</span>
+                                <span className="t-badge">{displayText(p.demand_code)}</span>
                                 {p.demand_name && (
                                   <span style={{ marginLeft: 6, color: "var(--ats-neutral)", fontSize: 12 }}>
-                                    {p.demand_name}
+                                    {displayText(p.demand_name)}
                                   </span>
                                 )}
                               </td>
-                              <td><span className="t-badge">{p.profile_code || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</span></td>
-                              <td>{p.profile_name || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td><span className="t-badge">{displayText(p.profile_code)}</span></td>
+                              <td>{displayText(p.profile_name)}</td>
                               <td>
-                                <span className={`t-source ${p.source?.toLowerCase()}`}>{p.source || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</span>
+                                <span className={`t-source ${p.source?.toLowerCase()}`}>{displayText(p.source)}</span>
                               </td>
                               <td>
                                 {p.ai_profile_score ? (
-                                  <span className="match-score">{p.ai_profile_score}</span>
-                                ) : "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}
+                                  <span className="match-score">{displayCount(p.ai_profile_score)}</span>
+                                ) : EMPTY_CELL}
                               </td>
-                              <td>{p.work_mode_name     || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                              <td>{p.current_company    || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                              <td>{p.preferred_location || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                              <td>{p.profile_availability || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td>{displayText(p.work_mode_name)}</td>
+                              <td>{displayText(p.current_company)}</td>
+                              <td>{displayText(p.preferred_location)}</td>
+                              <td>{displayText(p.profile_availability)}</td>
                               <td>
                                 {p.profile_status_name ? (
-                                  <span className="t-status-profile">{p.profile_status_name}</span>
-                                ) : "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}
+                                  <span className="t-status-profile">{displayText(p.profile_status_name)}</span>
+                                ) : EMPTY_CELL}
                               </td>
-                              <td>{p.profile_contact_no || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                              <td>{p.vendor_name        || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                              <td>{p.profile_email      || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td>{displayText(p.profile_contact_no)}</td>
+                              <td>{displayText(p.vendor_name)}</td>
+                              <td>{displayText(p.profile_email)}</td>
                               <td>
                                 {p.profile_id ? (
                                   <button
@@ -570,7 +613,7 @@ const CustomerDetail = () => {
                                   >
                                     Download
                                   </button>
-                                ) : "—"}
+                                ) : EMPTY_CELL}
                               </td>
                             </tr>
                           ))}
@@ -612,13 +655,13 @@ const CustomerDetail = () => {
                         <tbody>
                           {emailsSlice.map((e, i) => (
                             <tr key={i}>
-                              <td>{e.vendor_name   || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                              <td>{e.demand_name   || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                              <td>{e.location_type || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                              <td>{e.type          || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                              <td>{e.currency      || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                              <td>{e.max           ?? "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
-                              <td>{e.send_date     || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                              <td>{displayText(e.vendor_name)}</td>
+                              <td>{displayText(e.demand_name)}</td>
+                              <td>{displayText(e.location_type)}</td>
+                              <td>{displayText(e.type)}</td>
+                              <td>{displayText(e.currency)}</td>
+                              <td>{displayCount(e.max)}</td>
+                              <td>{displayText(e.send_date)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -651,12 +694,24 @@ const CustomerDetail = () => {
 
       <AddProfileModal
         isOpen={showAddProfile}
-        onClose={() => setShowAddProfile(false)}
+        onClose={() => {
+          setShowAddProfile(false);
+          setEditingProfile(null);
+        }}
         onSuccess={loadData}
         demandId={selectedDemandId}
         demandType={selectedDemandInfo?.demand_type}
         demands={demands}
         customerId={id}
+        editProfile={editingProfile}
+      />
+      <ViewProfileModal
+        isOpen={showViewProfile}
+        onClose={() => {
+          setShowViewProfile(false);
+          setViewProfileId(null);
+        }}
+        profileId={viewProfileId}
       />
       <ProfileStatusModal
         customerId={id}
@@ -693,7 +748,7 @@ const CustomerDetail = () => {
             <div className="contact-delete-body">
               <p className="contact-delete-text">
                 Are you sure you want to delete{" "}
-                <strong>{contactToDelete.contact_name || "this contact"}</strong>?
+                <strong>{displayText(contactToDelete.contact_name)}</strong>?
               </p>
             </div>
             <div className="contact-delete-footer">
@@ -1130,3 +1185,4 @@ const CustomerDetail = () => {
 };
 
 export default CustomerDetail;
+

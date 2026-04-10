@@ -1541,6 +1541,14 @@ const ExecutiveDashboardPage = () => {
           justify-content: space-between;
           gap: 18px;
           padding-bottom: 18px;
+          position: sticky;
+          top: 0;
+          z-index: 5;
+          margin: -20px -20px 18px;
+          padding: 20px 20px 18px;
+          background: rgba(255, 255, 255, 0.96);
+          backdrop-filter: blur(10px);
+          border-bottom: 1px solid rgba(148, 163, 184, 0.18);
         }
         .executive-dashboard-filter-title {
           display: inline-flex;
