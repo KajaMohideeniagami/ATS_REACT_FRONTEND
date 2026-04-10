@@ -27,6 +27,9 @@ const CustomerCard = ({ customer, onCardClick }) => {
 
   const handleClick = () => {
     if (onCardClick) onCardClick(customer);
+    navigate(`/customers/${customer.customer_id}`, {
+      state: { customer },
+    });
   };
 
   return (
@@ -45,10 +48,6 @@ const CustomerCard = ({ customer, onCardClick }) => {
             <h3 className="customer-name">{customer.customer_name}</h3>
           </div>
         </div>
-
-        <button type="button" className="customer-open-btn" onClick={handleOpen}>
-          Open
-        </button>
       </div>
 
       <div className="card-stats">

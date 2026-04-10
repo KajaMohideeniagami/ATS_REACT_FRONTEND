@@ -613,7 +613,7 @@ const CustomerDetail = () => {
                                   >
                                     Download
                                   </button>
-                                ) : EMPTY_CELL}
+                                ) : "-"}
                               </td>
                             </tr>
                           ))}

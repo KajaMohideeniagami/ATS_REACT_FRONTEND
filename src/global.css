@@ -899,7 +899,6 @@ a:hover {
   border-bottom: 1px solid rgba(255, 255, 255, 0.35);
 }
 
-.customer-open-btn,
 .customer-flip-back {
   position: relative;
   z-index: 1;
@@ -910,23 +909,6 @@ a:hover {
   transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 
-.customer-open-btn {
-  min-height: 30px;
-  padding: 0 11px;
-  background: linear-gradient(135deg, #0f172a, #2563eb);
-  color: #ffffff;
-  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.24);
-}
-
-.front-open-btn {
-  min-height: 30px;
-  padding: 0 11px;
-  font-size: 12px;
-  margin-left: auto;
-  align-self: center;
-}
-
-.customer-open-btn:hover,
 .customer-flip-back:hover {
   transform: translateY(-1px);
 }

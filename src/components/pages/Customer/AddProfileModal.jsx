@@ -63,7 +63,7 @@ const initialForm = {
   PROFILE_URL:            "",
 };
 
-// ── Small helpers — defined OUTSIDE component so React never recreates them ──
+// ── Small helpers - defined OUTSIDE component so React never recreates them ──
 const Field = ({ label, required, error, children }) => (
   <div className="form-group">
     {label && <label className="form-label">{label}{required && " *"}</label>}
@@ -77,7 +77,7 @@ const ReadField = ({ label, value }) => (
     {label && <label className="form-label">{label}</label>}
     <input
       className="form-input"
-      value={value ?? "—"}
+      value={value ?? "-"}
       readOnly
       style={{ background: "#f1f5f9", color: "#64748b", cursor: "default" }}
     />
@@ -484,7 +484,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
                   <ReadField label="Demand Type" value={demandDetails.demand_type} />
                   <ReadField label="Work Mode"   value={
                     workModes.find(w => String(w.value) === String(demandDetails.work_mode_id))?.label
-                    || demandDetails.work_mode_name || "—"
+                    || demandDetails.work_mode_name || "-"
                   } />
                 </div>
                 <div className="dm-row">
