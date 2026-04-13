@@ -13,10 +13,6 @@ const Loader = ({
 }) => {
   const { isVisible: isGlobalLoaderVisible } = useContext(LoaderStateContext);
 
-  if (!fullscreen && suppressWhenGlobal && isGlobalLoaderVisible) {
-    return null;
-  }
-
   const wrapperClassName = [
     'ats-loader',
     backdrop ? 'ats-loader-backdrop' : '',
@@ -24,6 +20,10 @@ const Loader = ({
     inline ? 'ats-loader-inline' : '',
     className,
   ].filter(Boolean).join(' ');
+
+  if (!fullscreen && suppressWhenGlobal && isGlobalLoaderVisible) {
+    return null;
+  }
 
   return (
     <div className={wrapperClassName} aria-live="polite" aria-busy="true">

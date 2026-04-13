@@ -12,6 +12,23 @@ const api = axios.create({
 });
 attachGlobalLoaderInterceptors(api);
 
+const AI_GATEWAY_URL = process.env.REACT_APP_AI_GATEWAY_URL
+  ? process.env.REACT_APP_AI_GATEWAY_URL.replace(/\/chat\/completions\/?$/, '')
+  : '';
+const AI_GATEWAY_KEY = process.env.REACT_APP_AI_GATEWAY_KEY;
+const AI_MODEL = 'oci/xai.grok-3';
+const PROMPT_TYPE_JD = 'JD_EXTRACTION';
+
+const aiApi = axios.create({
+  baseURL: AI_GATEWAY_URL,
+  timeout: 60000,
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    ...(AI_GATEWAY_KEY ? { Authorization: `Bearer ${AI_GATEWAY_KEY}` } : {}),
+  },
+});
+
 export const addDemand = async (demandData) => {
   try {
     const response = await api.post(API_ENDPOINTS.ADD_DEMAND, demandData);
@@ -36,9 +53,51 @@ export const updateDemand = async (demandData) => {
 
 export const extractJD = async (jobDescription) => {
   try {
-    const response = await api.post(API_ENDPOINTS.DEMAND_EXTRACT, { job_description: jobDescription });
-    console.log('Extract JD Response:', response.data);
-    return response.data;
+    if (!AI_GATEWAY_URL) {
+      throw new Error('AI gateway URL is missing. Set REACT_APP_AI_GATEWAY_URL in .env.');
+    }
+    if (!jobDescription?.trim()) {
+      throw new Error('Job description is required for AI extraction.');
+    }
+
+    let promptText = '';
+    try {
+      const promptRes = await api.get(API_ENDPOINTS.AI_PROMPT, {
+        params: { prompt_type: PROMPT_TYPE_JD },
+      });
+      const data = promptRes.data || {};
+      promptText =
+        data.prompt_text ||
+        data.prompt ||
+        data.PROMPT_TEXT ||
+        data.items?.[0]?.prompt_text ||
+        data.items?.[0]?.PROMPT_TEXT ||
+        '';
+    } catch {}
+
+    if (!promptText.trim()) {
+      throw new Error('Prompt text not found for JD_EXTRACTION.');
+    }
+
+    const payload = {
+      model: AI_MODEL,
+      messages: [
+        { role: 'user', content: String(promptText).trim() },
+        { role: 'user', content: jobDescription.trim() },
+      ],
+    };
+
+    const response = await aiApi.post('/chat/completions', payload);
+    const content =
+      response.data?.choices?.[0]?.message?.content ||
+      response.data?.choices?.[1]?.message?.content ||
+      '';
+
+    if (!content) {
+      return { success: false, message: 'AI returned empty response.' };
+    }
+
+    return { success: true, extraction: content };
   } catch (error) {
     console.error('Extract JD Error:', error);
     throw error;

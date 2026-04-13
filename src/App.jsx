@@ -23,7 +23,7 @@ import ProfileStatusModal from './components/pages/ProfileStatus/ProfileStatus';
 import DemandReportPage from './components/pages/DemandReport/DemandReportPage';
 import DashboardPage from './components/pages/Dashboard/DashboardPage';
 import ExecutiveDashboardPage from './components/pages/ExecutiveDashboard/ExecutiveDashboardPage';
-import ToastContainer from './components/Toast';
+import { ToastProvider } from './components/toast/index';
 import ProfileReportPage from './components/pages/ProfileReport/ProfileReportPage';
 import VendorReportPage from './components/pages/VendorReport/VendorReportPage';
 import CandidateReportPage from './components/pages/CandidateReport/CandidateReportPage';
@@ -206,6 +206,7 @@ const AppShell = ({ children }) => {
 const App = () => {
   return (
     <LoaderProvider>
+      <ToastProvider>
       <Router>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
@@ -382,8 +383,8 @@ const App = () => {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
 
-        <ToastContainer />
       </Router>
+      </ToastProvider>
     </LoaderProvider>
   );
 };

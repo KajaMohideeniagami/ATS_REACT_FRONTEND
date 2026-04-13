@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Building2, ChevronDown, Plus, RefreshCw, Search, X } from 'lucide-react';
 import Loader from '../../common/Loader';
-import { toast } from '../../../components/Toast';
+import { toast } from '../../../components/toast/index';
 import { getCountries } from '../../../services/lovService';
 import { createVendor, getVendorMasterList } from '../../../services/vendorMasterService';
 import '../../../global.css';

@@ -1,11 +1,15 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { X, Upload, FileText } from "lucide-react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { X, Upload, FileText, Zap } from "lucide-react";
 import { toast } from "../../toast/index";
+import Loader from "../../common/Loader";
+import AiLoader from "../../common/AiLoader";
 import axios from "axios";
 import { API_BASE_URL, API_ENDPOINTS, LOV_ENDPOINTS } from "../../../config/apiConfig";
 import { getDemandDetails } from "../../../services/demandService";
+import { analyzeProfile } from "../../../services/profileAiService";
 import { getProfileView } from "../../../services/profileViewService";
 import { validateRequiredFields } from "../../../utils/formValidation";
+import mammoth from "mammoth";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -20,7 +24,13 @@ const getLovData = async (path) => {
   try {
     const res = await api.get(path);
     return res.data.items || [];
-  } catch {
+  } catch (err) {
+    console.error('LOV request failed:', {
+      path,
+      status: err?.response?.status,
+      data: err?.response?.data,
+      message: err?.message,
+    });
     return [];
   }
 };
@@ -33,6 +43,64 @@ const fileToBase64 = (file) =>
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+
+const loadPdfJs = () =>
+  new Promise((resolve, reject) => {
+    if (window.pdfjsLib) { resolve(window.pdfjsLib); return; }
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js";
+    script.onload = () => {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+      resolve(window.pdfjsLib);
+    };
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+
+const readAsArrayBuffer = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+
+const formatText = (content) =>
+  content
+    .replace(/\b(Salary|CTC|Compensation|Packages|Salary Range|Package|Remuneration):?\s*(INR)?\s*\d+(\.\d+)?\s*(LPA|lakhs|per annum|pa)?\b/gi, "")
+    .replace(/\b(INR)?\s*\d+(\.\d+)?\s*(LPA|lakhs|per annum|pa)\b/gi, "")
+    .replace(/\b([A-Z])\s+([a-z]+)/g, "$1$2")
+    .replace(/\.\s*/g, ".\n")
+    .replace(/(\s*)\*/g, "\n*")
+    .replace(/(\s*)(\d+\.)\s+/g, "\n$2 ")
+    .replace(/ {2,}/g, " ")
+    .replace(/\n{2,}/g, "\n")
+    .trim();
+
+const extractPDF = async (file) => {
+  const pdfjsLib = await loadPdfJs();
+  const arrayBuffer = await readAsArrayBuffer(file);
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = "";
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    fullText += content.items.map((item) => item.str).join(" ") + "\n\n";
+  }
+  return formatText(fullText);
+};
+
+const extractDOCX = async (file) => {
+  const arrayBuffer = await readAsArrayBuffer(file);
+  const result = await mammoth.convertToHtml({ arrayBuffer });
+  const htmlText = result.value
+    .replace(/<p>/g, "\n")
+    .replace(/<\/p>/g, "\n")
+    .replace(/<br>/g, "\n")
+    .replace(/<\/?[^>]+(>|$)/g, "");
+  return formatText(htmlText);
+};
 
 const AVAILABILITY_FALLBACK = [
   { value: "Serving Notice", label: "Serving Notice" },
@@ -61,6 +129,10 @@ const initialForm = {
   NOTES:                  "",
   FILE_NAME:              "",
   PROFILE_URL:            "",
+  PROFILE_EXTRACTION:     "",
+  AI_PROFILE_SUMMARY:     "",
+  AI_PROFILE_MATCHING:    "",
+  AI_PROFILE_SCORE:       "",
 };
 
 // ── Small helpers - defined OUTSIDE component so React never recreates them ──
@@ -90,6 +162,8 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
   const [errors,             setErrors]            = useState({});
   const [loading,            setLoading]           = useState(false);
   const [uploadingFile,      setUploadingFile]     = useState(false);
+  const [analyzing,          setAnalyzing]         = useState(false);
+  const [profileParsing,     setProfileParsing]    = useState(false);
   const [selectedFileName,   setSelectedFileName]  = useState("");
   const [selectedFile,       setSelectedFile]      = useState(null);
   const [selectedDemandId,   setSelectedDemandId]  = useState(demandId ? String(demandId) : "");
@@ -102,7 +176,28 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
   const [taxTermsOpts,       setTaxTermsOpts]      = useState([]);
   const [vendors,            setVendors]           = useState([]);
 
+  const openDemands = useMemo(() => {
+    const isOpenStatus = (d) => {
+      const status = String(d?.demand_status ?? d?.DEMAND_STATUS ?? "").toLowerCase();
+      return status === "open";
+    };
+
+    const openOnly = demands.filter(isOpenStatus);
+    if (!editProfile?.profile_id) return openOnly;
+
+    const selected = demands.find(d => String(d.demand_id) === String(selectedDemandId));
+    if (!selected || openOnly.some(d => String(d.demand_id) === String(selected.demand_id))) {
+      return openOnly;
+    }
+    return [selected, ...openOnly];
+  }, [demands, editProfile?.profile_id, selectedDemandId]);
+
   const fileInputRef = useRef(null);
+  const isAnalysisComplete = Boolean(
+    formData.AI_PROFILE_SUMMARY?.trim()
+    && formData.AI_PROFILE_MATCHING?.trim()
+    && formData.AI_PROFILE_SCORE?.trim()
+  );
 
   // ── Reset ────────────────────────────────────────────────────────────────
   const resetForm = useCallback(() => {
@@ -110,6 +205,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
     setErrors({});
     setSelectedFileName("");
     setSelectedFile(null);
+    setProfileParsing(false);
     setSelectedDemandId(demandId ? String(demandId) : "");
     setSelectedDemandInfo(null);
     setDemandDetails(null);
@@ -139,6 +235,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
     };
 
     loadLovs();
+    loadPdfJs().catch(() => {});
   }, [isOpen]);
 
   // ── Handle demand selection ──────────────────────────────────────────────
@@ -146,6 +243,12 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
     const val = e.target.value;
     setSelectedDemandId(val);
     if (errors.DEMAND_ID) setErrors(p => ({ ...p, DEMAND_ID: "" }));
+    setFormData((p) => ({
+      ...p,
+      AI_PROFILE_SUMMARY: "",
+      AI_PROFILE_MATCHING: "",
+      AI_PROFILE_SCORE: "",
+    }));
 
     if (!val) {
       setSelectedDemandInfo(null);
@@ -209,7 +312,9 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
           WORK_MODE_ID:          source.work_mode || source.work_mode_id ? String(source.work_mode || source.work_mode_id) : "",
           WORK_EXP_IN_YEARS:     source.total_exp || source.work_exp_in_years || "",
           RELEVANT_EXP_IN_YEARS: source.relevant_exp || source.relevant_exp_in_years || "",
-          SALARY_CURRENCY_ID:    source.currency || source.salary_currency_id ? String(source.currency || source.salary_currency_id) : "",
+          SALARY_CURRENCY_ID:    source.salary_currency_id || source.SALARY_CURRENCY_ID || source.currency_id
+            ? String(source.salary_currency_id || source.SALARY_CURRENCY_ID || source.currency_id)
+            : "",
           CURRENT_SALARY_PA:     source.current_salary || source.current_salary_pa || "",
           EXPECTED_SALARY_PA:    source.expected_salary || source.expected_salary_pa || "",
           PROFILE_AVAILABILITY:  source.availability || source.profile_availability || "Serving Notice",
@@ -220,6 +325,9 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
           NOTES:                 source.notes || "",
           FILE_NAME:             source.file_name || "",
           PROFILE_URL:           source.profile_url || "",
+          AI_PROFILE_SUMMARY:    source.ai_profile_summary || "",
+          AI_PROFILE_MATCHING:   source.ai_profile_matching || "",
+          AI_PROFILE_SCORE:      source.ai_profile_score || "",
         }));
       } catch {
         setFormData((p) => ({
@@ -233,7 +341,9 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
           WORK_MODE_ID:          editProfile.work_mode_id ? String(editProfile.work_mode_id) : "",
           WORK_EXP_IN_YEARS:     editProfile.work_exp_in_years || "",
           RELEVANT_EXP_IN_YEARS: editProfile.relevant_exp_in_years || "",
-          SALARY_CURRENCY_ID:    editProfile.salary_currency_id ? String(editProfile.salary_currency_id) : "",
+          SALARY_CURRENCY_ID:    editProfile.salary_currency_id || editProfile.SALARY_CURRENCY_ID || editProfile.currency_id
+            ? String(editProfile.salary_currency_id || editProfile.SALARY_CURRENCY_ID || editProfile.currency_id)
+            : "",
           CURRENT_SALARY_PA:     editProfile.current_salary_pa || "",
           EXPECTED_SALARY_PA:    editProfile.expected_salary_pa || "",
           PROFILE_AVAILABILITY:  editProfile.profile_availability || "Serving Notice",
@@ -244,6 +354,9 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
           NOTES:                 editProfile.notes || "",
           FILE_NAME:             editProfile.file_name || "",
           PROFILE_URL:           editProfile.profile_url || "",
+          AI_PROFILE_SUMMARY:    editProfile.ai_profile_summary || "",
+          AI_PROFILE_MATCHING:   editProfile.ai_profile_matching || "",
+          AI_PROFILE_SCORE:      editProfile.ai_profile_score || "",
         }));
       }
     };
@@ -284,6 +397,125 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
 
     setSelectedFile(file);
     setSelectedFileName(file.name);
+
+    setProfileParsing(true);
+    (async () => {
+      try {
+        let extractedText = "";
+        if (ext === "pdf") {
+          extractedText = await extractPDF(file);
+        } else if (ext === "docx") {
+          extractedText = await extractDOCX(file);
+        } else {
+          toast.error("DOC format not supported for extraction. Please use PDF or DOCX.");
+          extractedText = "";
+        }
+
+        if (!extractedText.trim()) {
+          toast.error("No text could be extracted from the file.");
+        }
+
+        setFormData((p) => ({
+          ...p,
+          PROFILE_EXTRACTION: extractedText,
+          AI_PROFILE_SUMMARY: "",
+          AI_PROFILE_MATCHING: "",
+          AI_PROFILE_SCORE: "",
+        }));
+      } catch (err) {
+        console.error("Profile extraction error:", err);
+        toast.error("Failed to extract text from resume.");
+      } finally {
+        setProfileParsing(false);
+      }
+    })();
+  };
+
+  const handleAnalyze = async () => {
+    setAnalyzing(true);
+    const endAnalyzeWithError = (message) => {
+      toast.error(message);
+      setAnalyzing(false);
+    };
+    try {
+      if (!formData.PROFILE_EXTRACTION?.trim()) {
+        endAnalyzeWithError("Please upload a resume for AI analyzing.");
+        return;
+      }
+      if (!selectedDemandId) {
+        endAnalyzeWithError("Please select a demand to analyze.");
+        return;
+      }
+
+      let details = demandDetails;
+      if (!details && customerId) {
+        try {
+          details = await getDemandDetails(customerId, selectedDemandId);
+          setDemandDetails(details);
+        } catch {
+          details = null;
+        }
+      }
+      const normalizedDetails =
+        details?.demand ||
+        details?.data ||
+        details?.result?.[0] ||
+        details?.items?.[0] ||
+        details?.[0] ||
+        details;
+
+      if (!normalizedDetails) {
+        endAnalyzeWithError("Demand details not found for the selected demand.");
+        return;
+      }
+
+      const weights = {
+        skills: Number(normalizedDetails?.ai_skills_match ?? normalizedDetails?.AI_SKILLS_MATCH ?? 0),
+        experience: Number(normalizedDetails?.ai_experience_alignment ?? normalizedDetails?.AI_EXPERIENCE_ALIGNMENT ?? 0),
+        culture: Number(normalizedDetails?.ai_culture_soft_skill ?? normalizedDetails?.AI_CULTURE_SOFT_SKILL ?? 0),
+        growth: Number(normalizedDetails?.ai_growth_potential ?? normalizedDetails?.AI_GROWTH_POTENTIAL ?? 0),
+      };
+      const jdSummary =
+        normalizedDetails?.ai_jd_summary ??
+        normalizedDetails?.AI_JD_SUMMARY ??
+        normalizedDetails?.aiJdSummary ??
+        "";
+
+      if (!jdSummary.trim()) {
+        endAnalyzeWithError("JD summary is missing for the selected demand.");
+        return;
+      }
+      if (!(weights.skills || weights.experience || weights.culture || weights.growth)) {
+        endAnalyzeWithError("Scoring weights are missing for the selected demand.");
+        return;
+      }
+
+      toast.info("Running AI analysis...");
+
+      const response = await analyzeProfile({
+        profileText: formData.PROFILE_EXTRACTION,
+        jdSummary,
+        weights,
+      });
+
+      if (!response.success) {
+        endAnalyzeWithError(response.message || "Analysis failed.");
+        return;
+      }
+
+      setFormData((p) => ({
+        ...p,
+        AI_PROFILE_SUMMARY: response.profile_summary || response.ai_profile_summary || "",
+        AI_PROFILE_MATCHING: response.profile_matching || response.ai_profile_matching || "",
+        AI_PROFILE_SCORE: response.match_score || response.ai_profile_score || "",
+      }));
+
+      toast.success("Profile analysis completed.");
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err?.message || "Analysis failed.");
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   // ── Validation ───────────────────────────────────────────────────────────
@@ -304,7 +536,6 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
         EXPECTED_SALARY_PA: formData.EXPECTED_SALARY_PA,
         PROFILE_AVAILABILITY: formData.PROFILE_AVAILABILITY,
         TAX_TERMS: formData.TAX_TERMS,
-        VENDOR_ID: formData.VENDOR_ID,
       },
       { toastKey: 'add-profile-form', formId: 'add-profile-form' }
     );
@@ -329,7 +560,6 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
     if (e.EXPECTED_SALARY_PA) e.EXPECTED_SALARY_PA = "Required";
     if (e.PROFILE_AVAILABILITY) e.PROFILE_AVAILABILITY = "Required";
     if (e.TAX_TERMS) e.TAX_TERMS = "Required";
-    if (e.VENDOR_ID) e.VENDOR_ID = "Required";
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -339,6 +569,10 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
+    if (!isAnalysisComplete) {
+      toast.error("Please complete AI analysis before saving the profile.");
+      return;
+    }
 
     const isEdit = Boolean(editProfile?.profile_id);
     setLoading(true);
@@ -361,10 +595,13 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
         NOTICE_PERIOD_DAYS:    formData.NOTICE_PERIOD_DAYS ? Number(formData.NOTICE_PERIOD_DAYS) : null,
         NEGOTIABLE_DAYS:       formData.NEGOTIABLE_DAYS    || null,
         TAX_TERMS:             formData.TAX_TERMS,
-        VENDOR_ID:             Number(formData.VENDOR_ID),
+        VENDOR_ID:             formData.VENDOR_ID ? Number(formData.VENDOR_ID) : 401,
         FILE_NAME:             formData.FILE_NAME          || null,
         PROFILE_URL:           formData.PROFILE_URL        || null,
         NOTES:                 formData.NOTES              || null,
+        AI_PROFILE_SUMMARY:    formData.AI_PROFILE_SUMMARY || null,
+        AI_PROFILE_MATCHING:   formData.AI_PROFILE_MATCHING || null,
+        AI_PROFILE_SCORE:      formData.AI_PROFILE_SCORE || null,
       };
       if (isEdit) {
         payload.PROFILE_ID = Number(editProfile.profile_id);
@@ -442,6 +679,9 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
 
         {/* Body */}
         <div className="dm-body">
+          {loading ? (
+            <Loader inline message={uploadingFile ? "Uploading resume..." : "Saving profile..."} />
+          ) : null}
           <form id="add-profile-form" onSubmit={handleSubmit} noValidate>
 
             {/* ── Demand ── */}
@@ -455,7 +695,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
                   disabled={Boolean(editProfile?.profile_id)}
                 >
                   <option value="">Select demand</option>
-                  {demands.map(d => (
+                  {openDemands.map(d => (
                     <option key={d.demand_id} value={d.demand_id}>
                       {d.demand_code
                         ? `${d.demand_code} - ${d.job_role || "Untitled"}`
@@ -704,7 +944,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
             {/* ── Vendor ── */}
             <p className="dm-section-label">Vendor</p>
             <div className="dm-row">
-              <Field label="Vendor" required error={errors.VENDOR_ID}>
+              <Field label="Vendor" error={errors.VENDOR_ID}>
                 <select
                   name="VENDOR_ID"
                   className={`form-select${errors.VENDOR_ID ? " input-error" : ""}`}
@@ -720,32 +960,106 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
 
             {/* ── Resume Upload ── */}
             <p className="dm-section-label">Resume</p>
-            <div
-              className="dm-upload-zone"
-              onClick={() => fileInputRef.current?.click()}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.doc,.docx"
-                style={{ display: "none" }}
-                onChange={handleFileChange}
+            <div className="dm-row">
+              <div
+                className="dm-upload-zone"
+                onClick={() => fileInputRef.current?.click()}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  style={{ display: "none" }}
+                  onChange={handleFileChange}
+                />
+                {profileParsing ? (
+                  <span className="dm-upload-hint">Extracting text...</span>
+                ) : uploadingFile ? (
+                  <span className="dm-upload-hint">Uploading...</span>
+                ) : selectedFileName ? (
+                  <span className="dm-upload-selected">
+                    <FileText size={16} /> {selectedFileName}
+                  </span>
+                ) : (
+                  <>
+                    <Upload size={20} className="dm-upload-icon" />
+                    <span className="dm-upload-hint">Click to upload PDF or DOCX</span>
+                  </>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Attached File</label>
+                <input
+                  className="form-input"
+                  value={formData.FILE_NAME || "-"}
+                  readOnly
+                  style={{ background: "#f1f5f9", color: "#64748b", cursor: "default" }}
+                />
+              </div>
+            </div>
+
+            {/* ── Profile Analysis ── */}
+            <p className="dm-section-label">Profile Analysis</p>
+            <div className="dm-row">
+              <div className="form-group">
+                <button
+                  type="button"
+                  className="btn-ai"
+                  onClick={() => {
+                    handleAnalyze();
+                  }}
+                  disabled={analyzing}
+                >
+                  <Zap size={16} />
+                  {analyzing ? "Analyzing..." : "Analyze"}
+                </button>
+              </div>
+              <div />
+            </div>
+            {analyzing ? <AiLoader mode="profile" /> : null}
+            <div style={{ gridColumn: "1 / -1" }} className="form-group">
+              <label className="form-label">Profile Summary</label>
+              <textarea
+                name="AI_PROFILE_SUMMARY"
+                className="form-textarea"
+                placeholder="Profile summary will appear here after analysis."
+                value={formData.AI_PROFILE_SUMMARY}
+                onChange={handleChange}
+                readOnly
+                rows={3}
+                style={{ background: "#f1f5f9", color: "#64748b", cursor: "default" }}
               />
-              {uploadingFile ? (
-                <span className="dm-upload-hint">Uploading...</span>
-              ) : selectedFileName ? (
-                <span className="dm-upload-selected">
-                  <FileText size={16} /> {selectedFileName}
-                </span>
-              ) : (
-                <>
-                  <Upload size={20} className="dm-upload-icon" />
-                  <span className="dm-upload-hint">Click to upload PDF, DOC or DOCX</span>
-                </>
-              )}
+            </div>
+            <div style={{ gridColumn: "1 / -1" }} className="form-group">
+              <label className="form-label">Profile Matching</label>
+              <textarea
+                name="AI_PROFILE_MATCHING"
+                className="form-textarea"
+                placeholder="Profile matching details will appear here after analysis."
+                value={formData.AI_PROFILE_MATCHING}
+                onChange={handleChange}
+                readOnly
+                rows={4}
+                style={{ background: "#f1f5f9", color: "#64748b", cursor: "default" }}
+              />
+            </div>
+            <div className="dm-row">
+              <Field label="Match Score">
+                <input
+                  name="AI_PROFILE_SCORE"
+                  className="form-input"
+                  value={formData.AI_PROFILE_SCORE}
+                  onChange={handleChange}
+                  readOnly
+                  placeholder="e.g. 78/100"
+                  style={{ background: "#f1f5f9", color: "#64748b", cursor: "default" }}
+                />
+              </Field>
+              <div />
             </div>
 
             {/* ── Notes ── */}
@@ -769,9 +1083,9 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
               form="add-profile-form"
               type="submit"
               className="btn-primary"
-              disabled={loading || uploadingFile}
+              disabled={loading || uploadingFile || analyzing || !isAnalysisComplete}
             >
-              {loading ? "Saving..." : (editProfile?.profile_id ? "Update" : "Save Profile")}
+              {analyzing ? "Analyzing..." : (loading ? "Saving..." : (editProfile?.profile_id ? "Update" : "Save Profile"))}
             </button>
         </div>
 
@@ -849,6 +1163,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
         .form-textarea { resize: vertical; min-height: 80px; }
         .input-error { border-color: #ef4444 !important; }
         .form-error { font-size: 11px; color: #ef4444; margin-top: 2px; }
+        .form-hint { font-size: 11px; color: var(--ats-secondary); margin-top: 6px; }
         .dm-upload-zone {
           display: flex; align-items: center; justify-content: center; gap: 8px;
           border: 2px dashed var(--ats-border); border-radius: 10px;
@@ -858,11 +1173,11 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
         .dm-upload-zone:hover,
         .dm-upload-zone:focus { outline: none; border-color: var(--ats-primary); background: var(--ats-bg-accent, #f5f9ff); }
         .dm-upload-icon { color: var(--ats-secondary); }
-        .dm-upload-hint { font-size: 13px; color: var(--ats-secondary); }
         .dm-upload-selected {
           display: flex; align-items: center; gap: 6px;
           font-size: 13px; color: var(--ats-primary); font-weight: 500;
         }
+        .dm-upload-hint { font-size: 13px; color: var(--ats-secondary); }
         @keyframes dmFadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes dmSlideUp {
           from { opacity: 0; transform: translate(-50%, -45%); }

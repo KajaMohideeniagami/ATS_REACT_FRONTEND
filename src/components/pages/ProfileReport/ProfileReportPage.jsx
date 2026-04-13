@@ -11,7 +11,7 @@ import {
   Search,
 } from 'lucide-react';
 import Loader from '../../common/Loader';
-import { toast } from '../../../components/Toast';
+import { toast } from '../../../components/toast/index';
 import {
   getProfileReportCustomers,
   getProfileReportRows,

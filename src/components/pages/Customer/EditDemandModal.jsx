@@ -3,6 +3,7 @@ import axios from 'axios';
 import mammoth from 'mammoth';
 import { Upload, X, Zap } from 'lucide-react';
 import Loader from '../../common/Loader';
+import AiLoader from '../../common/AiLoader';
 import { API_BASE_URL, LOV_ENDPOINTS } from '../../../config/apiConfig';
 import { extractJD, getDemandDetails, updateDemand, uploadDemandFiles } from '../../../services/demandService';
 import { attachGlobalLoaderInterceptors } from '../../../services/httpLoader';
@@ -15,7 +16,13 @@ const getLovData = async (path) => {
   try {
     const res = await api.get(path);
     return res.data?.items || res.data || [];
-  } catch {
+  } catch (err) {
+    console.error('LOV request failed:', {
+      path,
+      status: err?.response?.status,
+      data: err?.response?.data,
+      message: err?.message,
+    });
     return [];
   }
 };
@@ -307,7 +314,7 @@ const EditDemandModal = ({ isOpen, onClose, onSuccess, customerId, demandId }) =
         des_status_id: formData.DES_STATUS_ID || null,
         assigned_to: formData.ASSIGNED_TO.trim(),
         no_of_lost_position: formData.NO_OF_LOST_POSITION || 0,
-        demand_status: formData.STATUS_LOST ? 'Lost' : formData.STATUS_HOLD ? 'Hold' : null,
+        demand_status: formData.STATUS_LOST ? 'Lost' : formData.STATUS_HOLD ? 'Hold' : 'Open',
       };
       const response = await updateDemand(payload);
       if (!response.success) return toast.error(response.message || 'Failed to update demand.');
@@ -334,6 +341,7 @@ const EditDemandModal = ({ isOpen, onClose, onSuccess, customerId, demandId }) =
           <button type="button" className="edm-close" onClick={handleClose} aria-label="Close"><X size={18} /></button>
         </div>
         <div className="edm-body">
+          {loading ? <Loader inline message="Saving demand..." /> : null}
           {lovLoading ? <Loader inline message="Loading demand details..." /> : (
             <form id="edit-demand-form" onSubmit={handleSubmit}>
               <div className="edm-row">
@@ -378,7 +386,8 @@ const EditDemandModal = ({ isOpen, onClose, onSuccess, customerId, demandId }) =
                 </Field>
                 <Field label="Attached Job Description"><input className="form-input edm-readonly-file" readOnly value={existingJd || ''} /></Field>
               </div>
-              <div className="form-group"><button type="button" className="btn-extract" onClick={handleExtract} disabled={extracting || !formData.JOB_DESCRIPTION.trim()}><Zap size={14} />{extracting ? 'Extracting...' : 'Extract'}</button></div>
+              <div className="form-group"><button type="button" className="btn-ai" onClick={handleExtract} disabled={extracting || !formData.JOB_DESCRIPTION.trim()}><Zap size={14} />{extracting ? 'Analyzing...' : 'Analyze'}</button></div>
+              {extracting ? <AiLoader mode="demand" /> : null}
               <Field label="AI Extraction"><textarea name="AI_EXTRACTION" className="form-textarea" value={formData.AI_EXTRACTION} onChange={handleChange} rows="4" /></Field>
               <div className="edm-score-section">
                 <h4 className="edm-score-title">Profile Score Configuration</h4>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Upload, Zap } from 'lucide-react';
 import { addDemand, extractJD, uploadDemandFiles } from '../../../services/demandService';
 import Loader from '../../common/Loader';
+import AiLoader from '../../common/AiLoader';
 import { toast } from '../../toast/index';
 import axios from 'axios';
 import { API_BASE_URL, LOV_ENDPOINTS } from '../../../config/apiConfig';
@@ -39,7 +40,15 @@ const getLovData = async (path) => {
     if (data.items) return data.items;
     if (Array.isArray(data)) return data;
     return [];
-  } catch { return []; }
+  } catch (err) {
+    console.error('LOV request failed:', {
+      path,
+      status: err?.response?.status,
+      data: err?.response?.data,
+      message: err?.message,
+    });
+    return [];
+  }
 };
 
 // ── Convert File to base64 ────────────────────────────────────────────────
@@ -348,6 +357,7 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
         year_of_exp_from:        formData.YEAR_OF_EXP_FROM        || null,
         year_of_exp_to:          formData.YEAR_OF_EXP_TO          || null,
         job_description:         formData.JOB_DESCRIPTION         || null,
+        ai_jd_summary:           formData.AI_EXTRACTION           || null,
         ai_skills_match:         formData.AI_SKILLS_MATCH         || null,
         ai_experience_alignment: formData.AI_EXPERIENCE_ALIGNMENT || null,
         ai_culture_soft_skill:   formData.AI_CULTURE_SOFT_SKILL   || null,
@@ -359,6 +369,7 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
         comments:                formData.COMMENTS                || null,
         des_status_id:           formData.DES_STATUS_ID           || null,
         assigned_to:             formData.ASSIGNED_TO.trim()      || null,
+        demand_status:           'Open',
       };
 
       const response = await addDemand(payload);
@@ -419,6 +430,7 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
 
         {/* Body */}
         <div className="dm-body">
+          {loading ? <Loader inline message="Saving demand..." /> : null}
           {lovLoading ? (
             <Loader inline message="Loading form data..." />
           ) : (
@@ -583,7 +595,6 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
                   {jdFile && <span className="file-name-tag">{jdFile.name}</span>}
                   {jdParsing && <span className="file-parsing-tag">Extracting text...</span>}
                 </div>
-                <p className="field-hint">Upload a PDF or DOCX to auto-fill Job Description</p>
               </div>
 
               {/* ── Job Description ── */}
@@ -603,17 +614,18 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
               <div className="form-group">
                 <button
                   type="button"
-                  className="btn-extract"
+                  className="btn-ai"
                   onClick={handleExtract}
                   disabled={extracting || !formData.JOB_DESCRIPTION.trim()}
                 >
                   <Zap size={14} />
-                  {extracting ? 'Extracting...' : 'Extract'}
+                  {extracting ? 'Analyzing...' : 'Analyze'}
                 </button>
                 {!formData.JOB_DESCRIPTION.trim() && (
-                  <span className="extract-hint">Enter or upload a Job Description to enable Extract</span>
+                  <span className="extract-hint"></span>
                 )}
               </div>
+              {extracting ? <AiLoader mode="demand" /> : null}
 
               {/* ── AI Extraction ── */}
               <div className="form-group">
@@ -624,7 +636,7 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
                   value={formData.AI_EXTRACTION}
                   onChange={handleChange}
                   rows="4"
-                  placeholder="Click Extract to generate AI summary..."
+                  placeholder="Click Analyze to generate AI summary..."
                   style={{ background: '#f8fafc' }}
                 />
               </div>
