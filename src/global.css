@@ -2464,6 +2464,7 @@ a:hover {
     box-shadow: 18px 0 40px rgba(15, 23, 42, 0.24);
     transform: translateX(-100%);
     transition: transform 0.22s ease;
+    pointer-events: none;
   }
 
   .app-sidebar-nav {
@@ -2480,6 +2481,7 @@ a:hover {
 
   .app-sidebar.open {
     transform: translateX(0);
+    pointer-events: auto;
   }
 
   .app-sidebar-submenu {
@@ -2532,6 +2534,7 @@ a:hover {
     backdrop-filter: blur(2px);
     z-index: 1050;
     cursor: pointer;
+    touch-action: none;
   }
 
   .demand-report-header {
@@ -2671,6 +2674,187 @@ a:hover {
 
   .demand-report-pagination {
     justify-content: space-between;
+  }
+}
+
+/* Ensure hidden mobile nav layers never block touches/clicks. */
+.mobile-nav:not(.mobile-nav-open) .app-sidebar {
+  pointer-events: none;
+}
+
+.mobile-nav-open .app-sidebar {
+  pointer-events: auto;
+}
+
+.app-sidebar-link,
+.app-sidebar-sublink,
+.btn-primary,
+.btn-secondary,
+.btn-ai,
+button,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+/* ============================================================
+   14. RESPONSIVE HARDENING
+   ============================================================ */
+img,
+picture,
+video,
+canvas,
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.app-content > * {
+  min-width: 0;
+}
+
+.ats-table-wrap,
+.demand-report-table-wrap,
+.vendor-master-table-wrap {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.demand-report-table,
+.vendor-master-table {
+  width: max-content;
+  min-width: 100%;
+}
+
+.dm-body,
+.edm-body,
+.vdr-body,
+.sev-body,
+.modal-body {
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 1199px) {
+  html {
+    font-size: 15px;
+  }
+
+  .customer-list-container,
+  .detail-page,
+  .demand-report-page,
+  .vendor-master-page {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .customer-list-header,
+  .detail-header,
+  .vendor-master-header,
+  .demand-report-header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .form-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .form-header-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .form-header-actions .btn-primary,
+  .form-header-actions .btn-secondary {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .detail-row {
+    grid-template-columns: minmax(140px, 38%) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  html {
+    font-size: 14px;
+  }
+
+  body {
+    overflow-x: hidden;
+  }
+
+  .customer-list-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .header-title-wrapper {
+    justify-content: space-between;
+  }
+
+  .header-title-wrapper .ats-heading-1 {
+    font-size: clamp(1.4rem, 5vw, 1.9rem);
+  }
+
+  .customer-list-header .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .detail-section {
+    padding: 16px;
+  }
+
+  .detail-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 12px 0;
+  }
+
+  .detail-label {
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .detail-value {
+    font-size: 14px;
+  }
+
+  .pagination {
+    width: 100%;
+  }
+
+  .page-btns {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .ats-table {
+    min-width: 720px;
+  }
+
+  .demand-report-table {
+    min-width: 980px;
+  }
+
+  .vendor-master-table {
+    min-width: 860px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header-title {
+    font-size: 14px;
+  }
+
+  .btn-primary,
+  .btn-secondary,
+  .btn-ai {
+    min-height: 42px;
+    padding: 10px 14px;
   }
 }
 

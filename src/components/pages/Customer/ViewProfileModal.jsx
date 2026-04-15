@@ -219,7 +219,7 @@ const ViewProfileModal = ({ isOpen, onClose, profileId }) => {
           color: var(--ats-secondary); cursor: pointer; transition: all 0.15s ease;
         }
         .dm-close:hover { background: var(--ats-bg-accent); color: var(--ats-primary); }
-        .dm-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+        .dm-body { padding: 20px 24px; overflow-y: auto; overflow-x: hidden; flex: 1; }
         .dm-footer {
           display: flex; justify-content: flex-end; gap: 12px;
           padding: 16px 24px 20px;
@@ -253,11 +253,33 @@ const ViewProfileModal = ({ isOpen, onClose, profileId }) => {
           from { opacity: 0; transform: translate(-50%, -45%); }
           to   { opacity: 1; transform: translate(-50%, -50%); }
         }
+        @media (max-width: 1024px) {
+          .dm-modal {
+            width: min(860px, calc(100vw - 24px));
+            max-height: 92vh;
+          }
+          .dm-row {
+            grid-template-columns: 1fr;
+          }
+        }
         @media (max-width: 768px) {
           .dm-modal {
             width: 100%; max-width: 100%;
             top: auto; bottom: 0; left: 0; transform: none;
             border-radius: 16px 16px 0 0; max-height: 95vh;
+          }
+          .dm-body { padding: 16px; }
+          .dm-header,
+          .dm-footer {
+            padding-left: 16px;
+            padding-right: 16px;
+          }
+          .dm-footer {
+            flex-direction: column-reverse;
+          }
+          .dm-footer .btn-secondary {
+            width: 100%;
+            justify-content: center;
           }
           .dm-row { grid-template-columns: 1fr; }
         }

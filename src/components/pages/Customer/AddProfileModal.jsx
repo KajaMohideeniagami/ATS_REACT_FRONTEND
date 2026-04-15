@@ -946,7 +946,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
             {/* Demand details (read-only) */}
             {demandDetails && (
               <>
-                <div style={{ gridColumn: '1 / -1' }} className="form-group">
+                <div className="form-group dm-full-span">
                   <label className="form-label">Job Description</label>
                   <textarea
                     className="form-textarea"
@@ -1257,7 +1257,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
               <div />
             </div>
             {analyzing ? <AiLoader mode="profile" /> : null}
-            <div style={{ gridColumn: "1 / -1" }} className="form-group">
+            <div className="form-group dm-full-span">
               <label className="form-label">Profile Summary</label>
               <textarea
                 name="AI_PROFILE_SUMMARY"
@@ -1270,7 +1270,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
                 style={{ background: "#f1f5f9", color: "#64748b", cursor: "default" }}
               />
             </div>
-            <div style={{ gridColumn: "1 / -1" }} className="form-group">
+            <div className="form-group dm-full-span">
               <label className="form-label">Profile Matching</label>
               <textarea
                 name="AI_PROFILE_MATCHING"
@@ -1363,7 +1363,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
           color: var(--ats-secondary); cursor: pointer; transition: all 0.15s ease;
         }
         .dm-close:hover { background: var(--ats-bg-accent); color: var(--ats-primary); }
-        .dm-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+        .dm-body { padding: 20px 24px; overflow-y: auto; overflow-x: hidden; flex: 1; }
         .dm-footer {
           display: flex; justify-content: flex-end; gap: 12px;
           padding: 16px 24px 20px;
@@ -1380,6 +1380,9 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
         .dm-row {
           display: grid; grid-template-columns: 1fr 1fr;
           gap: 16px; margin-bottom: 16px;
+        }
+        .dm-full-span {
+          grid-column: 1 / -1;
         }
         .form-group { display: flex; flex-direction: column; gap: 4px; }
         .form-label { font-size: 13px; font-weight: 500; color: var(--ats-primary); }
@@ -1414,10 +1417,23 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
           font-size: 13px; color: var(--ats-primary); font-weight: 500;
         }
         .dm-upload-hint { font-size: 13px; color: var(--ats-secondary); }
+        .btn-ai {
+          width: auto;
+          min-width: 184px;
+        }
         @keyframes dmFadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes dmSlideUp {
           from { opacity: 0; transform: translate(-50%, -45%); }
           to   { opacity: 1; transform: translate(-50%, -50%); }
+        }
+        @media (max-width: 1024px) {
+          .dm-modal {
+            width: min(860px, calc(100vw - 24px));
+            max-height: 92vh;
+          }
+          .dm-row {
+            grid-template-columns: 1fr;
+          }
         }
         @media (max-width: 768px) {
           .dm-modal {
@@ -1425,7 +1441,37 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
             top: auto; bottom: 0; left: 0; transform: none;
             border-radius: 16px 16px 0 0; max-height: 95vh;
           }
+          .dm-body { padding: 16px; }
+          .dm-header,
+          .dm-footer {
+            padding-left: 16px;
+            padding-right: 16px;
+          }
+          .dm-footer {
+            flex-direction: column-reverse;
+          }
+          .dm-footer .btn-primary,
+          .dm-footer .btn-secondary,
+          .btn-ai {
+            width: 100%;
+            justify-content: center;
+          }
+          .dm-upload-zone {
+            flex-direction: column;
+            text-align: center;
+          }
           .dm-row { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 480px) {
+          .dm-section-label {
+            margin-top: 16px;
+          }
+          .dm-upload-selected {
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+            text-align: center;
+          }
         }
       `}</style>
     </>

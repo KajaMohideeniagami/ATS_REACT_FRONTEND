@@ -758,6 +758,7 @@ const SendEmailToVendorsModal = ({ isOpen, onClose, onSuccess, customerId, deman
           padding: 18px 24px 20px;
           flex: 1;
           overflow-y: auto;
+          overflow-x: hidden;
         }
         .sev-footer {
           display: flex;
@@ -1017,6 +1018,32 @@ const SendEmailToVendorsModal = ({ isOpen, onClose, onSuccess, customerId, deman
         @keyframes sevFadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
+        }
+        @media (max-width: 1024px) {
+          .sev-modal {
+            width: min(900px, calc(100vw - 24px));
+            max-width: min(900px, calc(100vw - 24px));
+            max-height: 92vh;
+          }
+          .sev-row,
+          .sev-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+        @media (max-width: 768px) {
+          .sev-header,
+          .sev-body,
+          .sev-footer {
+            padding-left: 16px;
+            padding-right: 16px;
+          }
+          .sev-footer {
+            padding-bottom: 16px;
+          }
+          .sev-send-btn {
+            width: 100%;
+            justify-content: center;
+          }
         }
         @media (max-width: 640px) {
           .sev-modal {

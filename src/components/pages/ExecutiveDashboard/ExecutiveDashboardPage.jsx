@@ -103,7 +103,9 @@ const buildYearOptions = () => {
 };
 
 const getCurrentMonthValue = () => String(new Date().getMonth() + 1).padStart(2, '0');
+const getCurrentWeekValue = () => String(Math.min(5, Math.floor((new Date().getDate() - 1) / 7) + 1));
 const getCurrentQuarterValue = () => String(Math.floor(new Date().getMonth() / 3) + 1);
+const getCurrentYearValue = () => String(new Date().getFullYear());
 
 const METRIC_LABELS = {
   'Total Demands': 'Total Demands',
@@ -532,13 +534,13 @@ const ExecutiveDashboardPage = () => {
     year: String(new Date().getFullYear()),
   });
   const [analysisFilters, setAnalysisFilters] = useState({
-    monthYear: String(new Date().getFullYear()),
-    compareMonths: [],
-    weekYear: String(new Date().getFullYear()),
-    weekMonth: getCurrentMonthValue(),
-    compareWeeks: [],
-    quarterYear: String(new Date().getFullYear()),
-    compareQuarters: [],
+    monthYears: [getCurrentYearValue()],
+    compareMonths: [getCurrentMonthValue()],
+    weekYears: [getCurrentYearValue()],
+    weekMonths: [getCurrentMonthValue()],
+    compareWeeks: [getCurrentWeekValue()],
+    quarterYears: [getCurrentYearValue()],
+    compareQuarters: [getCurrentQuarterValue()],
   });
   const [dashboardData, setDashboardData] = useState(EMPTY_EXECUTIVE_DATA);
   const [sectionLoading, setSectionLoading] = useState(EMPTY_SECTION_LOADING);
@@ -649,10 +651,11 @@ const ExecutiveDashboardPage = () => {
 
         const data = await getExecutiveDashboardAnalysisData({
           ...filters,
-          analysisMonthYear: analysisFilters.monthYear,
-          analysisWeekYear: analysisFilters.weekYear,
-          analysisWeekMonth: analysisFilters.weekMonth,
-          analysisQuarterYear: analysisFilters.quarterYear,
+          // Keep existing API contract (single value); use first selected.
+          analysisMonthYear: analysisFilters.monthYears[0],
+          analysisWeekYear: analysisFilters.weekYears[0],
+          analysisWeekMonth: analysisFilters.weekMonths[0],
+          analysisQuarterYear: analysisFilters.quarterYears[0],
         });
 
         if (cancelled) return;
@@ -682,10 +685,10 @@ const ExecutiveDashboardPage = () => {
     filters.customer,
     filters.demandType,
     filters.year,
-    analysisFilters.monthYear,
-    analysisFilters.weekYear,
-    analysisFilters.weekMonth,
-    analysisFilters.quarterYear,
+    analysisFilters.monthYears,
+    analysisFilters.weekYears,
+    analysisFilters.weekMonths,
+    analysisFilters.quarterYears,
   ]);
 
   useEffect(() => {
@@ -748,13 +751,13 @@ const ExecutiveDashboardPage = () => {
       year: String(new Date().getFullYear()),
     });
     setAnalysisFilters({
-      monthYear: String(new Date().getFullYear()),
-      compareMonths: [],
-      weekYear: String(new Date().getFullYear()),
-      weekMonth: getCurrentMonthValue(),
-      compareWeeks: [],
-      quarterYear: String(new Date().getFullYear()),
-      compareQuarters: [],
+      monthYears: [getCurrentYearValue()],
+      compareMonths: [getCurrentMonthValue()],
+      weekYears: [getCurrentYearValue()],
+      weekMonths: [getCurrentMonthValue()],
+      compareWeeks: [getCurrentWeekValue()],
+      quarterYears: [getCurrentYearValue()],
+      compareQuarters: [getCurrentQuarterValue()],
     });
     toast.success('Executive dashboard filters reset.');
   };
@@ -881,11 +884,11 @@ const ExecutiveDashboardPage = () => {
     }
 
     const options = MONTH_OPTIONS.filter((option) =>
-      option.value === analysisFilters.weekMonth
+      option.value === (analysisFilters.weekMonths?.[0] || getCurrentMonthValue())
     );
 
     return options.length ? options : MONTH_OPTIONS;
-  }, [analysisFilters.weekMonth, dashboardData.availableWeekMonths]);
+  }, [analysisFilters.weekMonths, dashboardData.availableWeekMonths]);
 
   const availableWeekOptions = useMemo(() => {
     if (dashboardData.availableWeeks.length) {
@@ -924,31 +927,40 @@ const ExecutiveDashboardPage = () => {
   const availableQuarterYearOptions = availableAnalysisYearOptions;
 
   useEffect(() => {
-    if (!availableMonthYearOptions.some((option) => option.value === analysisFilters.monthYear)) {
+    const filteredValues = analysisFilters.monthYears.filter((value) =>
+      availableMonthYearOptions.some((option) => option.value === value)
+    );
+    if (filteredValues.length !== analysisFilters.monthYears.length) {
       setAnalysisFilters((previous) => ({
         ...previous,
-        monthYear: availableMonthYearOptions[0]?.value ?? String(new Date().getFullYear()),
+        monthYears: filteredValues.length ? filteredValues : [getCurrentYearValue()],
       }));
     }
-  }, [analysisFilters.monthYear, availableMonthYearOptions]);
+  }, [analysisFilters.monthYears, availableMonthYearOptions]);
 
   useEffect(() => {
-    if (!availableWeekYearOptions.some((option) => option.value === analysisFilters.weekYear)) {
+    const filteredValues = analysisFilters.weekYears.filter((value) =>
+      availableWeekYearOptions.some((option) => option.value === value)
+    );
+    if (filteredValues.length !== analysisFilters.weekYears.length) {
       setAnalysisFilters((previous) => ({
         ...previous,
-        weekYear: availableWeekYearOptions[0]?.value ?? String(new Date().getFullYear()),
+        weekYears: filteredValues.length ? filteredValues : [getCurrentYearValue()],
       }));
     }
-  }, [analysisFilters.weekYear, availableWeekYearOptions]);
+  }, [analysisFilters.weekYears, availableWeekYearOptions]);
 
   useEffect(() => {
-    if (!availableQuarterYearOptions.some((option) => option.value === analysisFilters.quarterYear)) {
+    const filteredValues = analysisFilters.quarterYears.filter((value) =>
+      availableQuarterYearOptions.some((option) => option.value === value)
+    );
+    if (filteredValues.length !== analysisFilters.quarterYears.length) {
       setAnalysisFilters((previous) => ({
         ...previous,
-        quarterYear: availableQuarterYearOptions[0]?.value ?? String(new Date().getFullYear()),
+        quarterYears: filteredValues.length ? filteredValues : [getCurrentYearValue()],
       }));
     }
-  }, [analysisFilters.quarterYear, availableQuarterYearOptions]);
+  }, [analysisFilters.quarterYears, availableQuarterYearOptions]);
 
   useEffect(() => {
     const filteredValues = analysisFilters.compareMonths.filter((value) =>
@@ -964,13 +976,16 @@ const ExecutiveDashboardPage = () => {
   }, [analysisFilters.compareMonths, availableMonthOptions]);
 
   useEffect(() => {
-    if (!availableWeekMonthOptions.some((option) => option.value === analysisFilters.weekMonth)) {
+    const filteredValues = analysisFilters.weekMonths.filter((value) =>
+      availableWeekMonthOptions.some((option) => option.value === value)
+    );
+    if (filteredValues.length !== analysisFilters.weekMonths.length) {
       setAnalysisFilters((previous) => ({
         ...previous,
-        weekMonth: availableWeekMonthOptions[0]?.value ?? getCurrentMonthValue(),
+        weekMonths: filteredValues.length ? filteredValues : [getCurrentMonthValue()],
       }));
     }
-  }, [analysisFilters.weekMonth, availableWeekMonthOptions]);
+  }, [analysisFilters.weekMonths, availableWeekMonthOptions]);
 
   useEffect(() => {
     const filteredValues = analysisFilters.compareWeeks.filter((value) =>
@@ -1337,26 +1352,19 @@ const ExecutiveDashboardPage = () => {
                     errorMessage={sectionErrors.analysis}
                     filters={
                       <>
-                        <div className="executive-analysis-filter">
-                          <label className="form-label">Year</label>
-                          <select
-                            className="form-select"
-                            value={analysisFilters.monthYear}
-                            onChange={(event) => handleAnalysisFilterChange('monthYear', event.target.value)}
-                          >
-                            {availableMonthYearOptions.map((year) => (
-                              <option key={year.value} value={year.value}>
-                                {year.label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                        <MultiSelectDropdown
+                          label="Year"
+                          options={availableMonthYearOptions}
+                          selectedValues={analysisFilters.monthYears}
+                          onChange={(values) => handleAnalysisFilterChange('monthYears', values)}
+                          placeholder="Select Year(s)"
+                        />
                         <MultiSelectDropdown
                           label="Month"
                           options={availableMonthOptions}
                           selectedValues={analysisFilters.compareMonths}
                           onChange={(values) => handleAnalysisFilterChange('compareMonths', values)}
-                          placeholder="Select months"
+                          placeholder="Select Month(s)"
                         />
                       </>
                     }
@@ -1371,40 +1379,26 @@ const ExecutiveDashboardPage = () => {
                     errorMessage={sectionErrors.analysis}
                     filters={
                       <>
-                        <div className="executive-analysis-filter">
-                          <label className="form-label">Year</label>
-                          <select
-                            className="form-select"
-                            value={analysisFilters.weekYear}
-                            onChange={(event) => handleAnalysisFilterChange('weekYear', event.target.value)}
-                          >
-                            {availableWeekYearOptions.map((year) => (
-                              <option key={year.value} value={year.value}>
-                                {year.label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="executive-analysis-filter">
-                          <label className="form-label">Month</label>
-                          <select
-                            className="form-select"
-                            value={analysisFilters.weekMonth}
-                            onChange={(event) => handleAnalysisFilterChange('weekMonth', event.target.value)}
-                          >
-                            {availableWeekMonthOptions.map((month) => (
-                              <option key={month.value} value={month.value}>
-                                {month.label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                        <MultiSelectDropdown
+                          label="Year"
+                          options={availableWeekYearOptions}
+                          selectedValues={analysisFilters.weekYears}
+                          onChange={(values) => handleAnalysisFilterChange('weekYears', values)}
+                          placeholder="Select Year(s)"
+                        />
+                        <MultiSelectDropdown
+                          label="Month"
+                          options={availableWeekMonthOptions}
+                          selectedValues={analysisFilters.weekMonths}
+                          onChange={(values) => handleAnalysisFilterChange('weekMonths', values)}
+                          placeholder="Select Month(s)"
+                        />
                         <MultiSelectDropdown
                           label="Week"
                           options={availableWeekOptions}
                           selectedValues={analysisFilters.compareWeeks}
                           onChange={(values) => handleAnalysisFilterChange('compareWeeks', values)}
-                          placeholder="Select weeks"
+                          placeholder="Select Week(s)"
                         />
                       </>
                     }
@@ -1419,26 +1413,19 @@ const ExecutiveDashboardPage = () => {
                     errorMessage={sectionErrors.analysis}
                     filters={
                       <>
-                        <div className="executive-analysis-filter">
-                          <label className="form-label">Year</label>
-                          <select
-                            className="form-select"
-                            value={analysisFilters.quarterYear}
-                            onChange={(event) => handleAnalysisFilterChange('quarterYear', event.target.value)}
-                          >
-                            {availableQuarterYearOptions.map((year) => (
-                              <option key={year.value} value={year.value}>
-                                {year.label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                        <MultiSelectDropdown
+                          label="Year"
+                          options={availableQuarterYearOptions}
+                          selectedValues={analysisFilters.quarterYears}
+                          onChange={(values) => handleAnalysisFilterChange('quarterYears', values)}
+                          placeholder="Select Year(s)"
+                        />
                         <MultiSelectDropdown
                           label="Quarter"
                           options={availableQuarterOptions}
                           selectedValues={analysisFilters.compareQuarters}
                           onChange={(values) => handleAnalysisFilterChange('compareQuarters', values)}
-                          placeholder="Select quarters"
+                          placeholder="Select Quarter(s)"
                         />
                       </>
                     }

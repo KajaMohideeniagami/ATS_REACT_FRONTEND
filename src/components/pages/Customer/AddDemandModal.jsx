@@ -293,7 +293,11 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
     try {
       const response = await extractJD(formData.JOB_DESCRIPTION);
       if (response.success) {
-        setFormData(prev => ({ ...prev, AI_EXTRACTION: response.extraction }));
+        setFormData(prev => ({
+          ...prev,
+          AI_EXTRACTION: response.extraction || prev.AI_EXTRACTION,
+          PROFILE_KEYWORDS: response.keywords || prev.PROFILE_KEYWORDS,
+        }));
         toast.success('AI extraction completed!');
       } else {
         toast.error(response.message || 'Extraction failed.');
@@ -695,7 +699,7 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
               </div>
 
               {/* ── Standard Work Timing ── */}
-              <div className="form-group" style={{ maxWidth: 220 }}>
+              <div className="form-group dm-inline-field">
                 <label className="form-label">Standard Work Timing</label>
                 <select name="STANDARD_TIME" className="form-select" value={formData.STANDARD_TIME} onChange={handleChange}>
                   <option value="1">Yes</option>
@@ -800,7 +804,7 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
           color: var(--ats-secondary); cursor: pointer; transition: all 0.15s ease;
         }
         .dm-close:hover { background: var(--ats-bg-accent); color: var(--ats-primary); }
-        .dm-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+        .dm-body { padding: 20px 24px; overflow-y: auto; overflow-x: hidden; flex: 1; }
         .dm-footer {
           display: flex; justify-content: flex-end; gap: 12px;
           padding: 16px 24px 20px;
@@ -808,6 +812,7 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
           flex-shrink: 0;
         }
         .dm-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 0; }
+        .dm-inline-field { max-width: 220px; }
         .dm-score-section {
           border: 1px solid var(--ats-border); border-radius: 10px;
           padding: 16px; margin-bottom: 20px; background: var(--ats-bg-secondary);
@@ -859,6 +864,10 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
           margin-left: 12px; font-size: 12px;
           color: var(--ats-secondary); font-family: 'Inter', sans-serif;
         }
+        .btn-ai {
+          width: auto;
+          min-width: 184px;
+        }
         .input-error { border-color: var(--ats-error) !important; }
         .form-error { font-size: 11px; color: var(--ats-error, #ef4444); margin-top: 3px; display: block; }
         .loading-message {
@@ -870,10 +879,57 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
           from { opacity: 0; transform: translate(-50%, -45%); }
           to   { opacity: 1; transform: translate(-50%, -50%); }
         }
+        @media (max-width: 1024px) {
+          .dm-modal {
+            width: min(860px, calc(100vw - 24px));
+            max-height: 92vh;
+          }
+          .dm-row,
+          .dm-score-grid {
+            grid-template-columns: 1fr;
+          }
+          .dm-inline-field {
+            max-width: 100%;
+          }
+          .file-name-tag {
+            max-width: min(100%, 360px);
+          }
+        }
         @media (max-width: 768px) {
           .dm-modal { width: 100%; max-width: 100%; top: auto; bottom: 0; left: 0; transform: none; border-radius: 16px 16px 0 0; max-height: 95vh; }
+          .dm-body { padding: 16px; }
+          .dm-header,
+          .dm-footer {
+            padding-left: 16px;
+            padding-right: 16px;
+          }
+          .dm-footer {
+            flex-direction: column-reverse;
+          }
+          .dm-footer .btn-primary,
+          .dm-footer .btn-secondary,
+          .btn-ai {
+            width: 100%;
+            justify-content: center;
+          }
           .dm-row, .dm-score-grid { grid-template-columns: 1fr; }
           .extract-hint { display: block; margin-left: 0; margin-top: 6px; }
+        }
+        @media (max-width: 480px) {
+          .dm-section-label {
+            margin-top: 16px;
+          }
+          .file-upload-wrap {
+            align-items: stretch;
+          }
+          .file-upload-btn {
+            width: 100%;
+            justify-content: center;
+          }
+          .file-name-tag,
+          .file-parsing-tag {
+            max-width: 100%;
+          }
         }
       `}</style>
     </>

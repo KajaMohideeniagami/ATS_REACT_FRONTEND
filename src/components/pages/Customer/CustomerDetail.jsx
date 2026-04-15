@@ -1170,6 +1170,29 @@ const CustomerDetail = () => {
         .page-btn.active { background: var(--ats-primary); border-color: var(--ats-primary); color: #ffffff; font-weight: 600; }
         .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+        @media (max-width: 1024px) {
+          .detail-header {
+            flex-wrap: wrap;
+            align-items: flex-start;
+            gap: 12px;
+          }
+          .header-actions {
+            width: 100%;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+          }
+          .quick-actions-dropdown {
+            right: auto;
+            left: 0;
+            max-width: min(320px, calc(100vw - 32px));
+          }
+          .detail-section {
+            padding: 18px;
+          }
+          .page-btns {
+            flex-wrap: wrap;
+          }
+        }
         @media (max-width: 768px) {
           .detail-page   { padding: 16px; }
           .detail-header { flex-direction: column; align-items: flex-start; gap: 12px; }
@@ -1178,6 +1201,30 @@ const CustomerDetail = () => {
           .detail-stats-bar span { flex: 1; min-width: 120px; }
           .pagination { flex-direction: column; gap: 8px; align-items: flex-start; }
           .quick-actions-dropdown { right: auto; left: 0; }
+          .contact-delete-footer {
+            flex-direction: column-reverse;
+          }
+          .contact-delete-footer .btn-secondary,
+          .contact-delete-btn {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+        @media (max-width: 560px) {
+          .detail-section-title {
+            flex-wrap: wrap;
+            gap: 8px;
+          }
+          .btn-add-section {
+            margin-left: 0;
+          }
+          .detail-tabs {
+            margin-bottom: 18px;
+          }
+          .page-btn {
+            min-width: 30px;
+            height: 30px;
+          }
         }
       `}</style>
     </div>

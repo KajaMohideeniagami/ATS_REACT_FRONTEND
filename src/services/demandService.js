@@ -18,6 +18,7 @@ const AI_GATEWAY_URL = process.env.REACT_APP_AI_GATEWAY_URL
 const AI_GATEWAY_KEY = process.env.REACT_APP_AI_GATEWAY_KEY;
 const AI_MODEL = 'oci/xai.grok-3';
 const PROMPT_TYPE_JD = 'JD_EXTRACTION';
+const PROMPT_TYPE_JD_KEYWORDS = 'JD_KEYWORD_EXTRACTION';
 
 const aiApi = axios.create({
   baseURL: AI_GATEWAY_URL,
@@ -97,6 +98,39 @@ export const updateDemand = async (demandData) => {
   }
 };
 
+const getPromptTextByType = async (promptType) => {
+  const promptRes = await api.get(API_ENDPOINTS.AI_PROMPT, {
+    params: { prompt_type: promptType },
+  });
+  const data = promptRes.data || {};
+
+  return (
+    data.prompt_text ||
+    data.prompt ||
+    data.PROMPT_TEXT ||
+    data.items?.[0]?.prompt_text ||
+    data.items?.[0]?.PROMPT_TEXT ||
+    ''
+  );
+};
+
+const runAiPrompt = async (promptText, sourceText) => {
+  const payload = {
+    model: AI_MODEL,
+    messages: [
+      { role: 'user', content: String(promptText).trim() },
+      { role: 'user', content: sourceText.trim() },
+    ],
+  };
+
+  const response = await aiApi.post('/chat/completions', payload);
+  return (
+    response.data?.choices?.[0]?.message?.content ||
+    response.data?.choices?.[1]?.message?.content ||
+    ''
+  );
+};
+
 export const extractJD = async (jobDescription) => {
   try {
     if (!AI_GATEWAY_URL) {
@@ -106,44 +140,35 @@ export const extractJD = async (jobDescription) => {
       throw new Error('Job description is required for AI extraction.');
     }
 
-    let promptText = '';
+    let summaryPromptText = '';
+    let keywordPromptText = '';
     try {
-      const promptRes = await api.get(API_ENDPOINTS.AI_PROMPT, {
-        params: { prompt_type: PROMPT_TYPE_JD },
-      });
-      const data = promptRes.data || {};
-      promptText =
-        data.prompt_text ||
-        data.prompt ||
-        data.PROMPT_TEXT ||
-        data.items?.[0]?.prompt_text ||
-        data.items?.[0]?.PROMPT_TEXT ||
-        '';
+      [summaryPromptText, keywordPromptText] = await Promise.all([
+        getPromptTextByType(PROMPT_TYPE_JD),
+        getPromptTextByType(PROMPT_TYPE_JD_KEYWORDS),
+      ]);
     } catch {}
 
-    if (!promptText.trim()) {
+    if (!summaryPromptText.trim()) {
       throw new Error('Prompt text not found for JD_EXTRACTION.');
     }
 
-    const payload = {
-      model: AI_MODEL,
-      messages: [
-        { role: 'user', content: String(promptText).trim() },
-        { role: 'user', content: jobDescription.trim() },
-      ],
-    };
+    const [summaryContent, keywordContent] = await Promise.all([
+      runAiPrompt(summaryPromptText, jobDescription),
+      keywordPromptText.trim()
+        ? runAiPrompt(keywordPromptText, jobDescription)
+        : Promise.resolve(''),
+    ]);
 
-    const response = await aiApi.post('/chat/completions', payload);
-    const content =
-      response.data?.choices?.[0]?.message?.content ||
-      response.data?.choices?.[1]?.message?.content ||
-      '';
-
-    if (!content) {
+    if (!summaryContent && !keywordContent) {
       return { success: false, message: 'AI returned empty response.' };
     }
 
-    return { success: true, extraction: content };
+    return {
+      success: true,
+      extraction: summaryContent,
+      keywords: keywordContent,
+    };
   } catch (error) {
     console.error('Extract JD Error:', error);
     throw error;

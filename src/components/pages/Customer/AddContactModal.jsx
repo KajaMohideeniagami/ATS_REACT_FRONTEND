@@ -276,6 +276,7 @@ const AddContactModal = ({ isOpen, onClose, onSuccess, customerId, editContact =
         }
         .modal-body {
           padding: 20px 24px;
+          overflow-x: hidden;
         }
         .modal-footer {
           display: flex;
@@ -295,6 +296,11 @@ const AddContactModal = ({ isOpen, onClose, onSuccess, customerId, editContact =
           from { opacity: 0; transform: translate(-50%, -45%); }
           to   { opacity: 1; transform: translate(-50%, -50%); }
         }
+        @media (max-width: 1024px) {
+          .modal-container {
+            width: min(560px, calc(100vw - 24px));
+          }
+        }
         @media (max-width: 768px) {
           .modal-container {
             width: 100%;
@@ -305,6 +311,20 @@ const AddContactModal = ({ isOpen, onClose, onSuccess, customerId, editContact =
             transform: none;
             border-radius: 16px 16px 0 0;
             animation: slideUpMobile 0.25s ease;
+          }
+          .modal-header,
+          .modal-body,
+          .modal-footer {
+            padding-left: 16px;
+            padding-right: 16px;
+          }
+          .modal-footer {
+            flex-direction: column-reverse;
+          }
+          .modal-footer .btn-primary,
+          .modal-footer .btn-secondary {
+            width: 100%;
+            justify-content: center;
           }
           @keyframes slideUpMobile {
             from { transform: translateY(100%); }

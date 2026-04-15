@@ -53,9 +53,11 @@ const NAV_ITEMS = [
 const AppShell = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobileNav, setIsMobileNav] = useState(() => (
     typeof window !== 'undefined' ? window.innerWidth <= 980 : false
+  ));
+  const [sidebarOpen, setSidebarOpen] = useState(() => (
+    typeof window !== 'undefined' ? window.innerWidth > 980 : true
   ));
   const [candidateMenuOpen, setCandidateMenuOpen] = useState(() => location.pathname.startsWith('/candidate-report'));
   const sessionUser = getSession();
@@ -69,7 +71,12 @@ const AppShell = ({ children }) => {
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobileNav(window.innerWidth <= 980);
+      const mobile = window.innerWidth <= 980;
+      setIsMobileNav(mobile);
+      if (mobile) {
+        // Avoid a full-screen backdrop blocking interaction on small screens.
+        setSidebarOpen(false);
+      }
     };
 
     handleResize();
@@ -85,6 +92,11 @@ const AppShell = ({ children }) => {
   const handleNavClick = (item) => {
     if (!item.path) return;
     navigate(item.path);
+    if (isMobileNav) setSidebarOpen(false);
+  };
+
+  const handleChildNavClick = (path) => {
+    navigate(path);
     if (isMobileNav) setSidebarOpen(false);
   };
 
@@ -165,7 +177,7 @@ const AppShell = ({ children }) => {
                               key={child.label}
                               type="button"
                               className={`app-sidebar-sublink ${location.pathname === child.path ? 'active' : ''}`}
-                              onClick={() => navigate(child.path)}
+                              onClick={() => handleChildNavClick(child.path)}
                               title={child.label}
                             >
                               <span className="app-sidebar-sublink-main">

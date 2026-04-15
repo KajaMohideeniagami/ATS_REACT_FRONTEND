@@ -252,7 +252,11 @@ const EditDemandModal = ({ isOpen, onClose, onSuccess, customerId, demandId }) =
     try {
       const response = await extractJD(formData.JOB_DESCRIPTION);
       if (!response.success) return toast.error(response.message || 'Extraction failed.');
-      setFormData((prev) => ({ ...prev, AI_EXTRACTION: response.extraction || response.message || '' }));
+      setFormData((prev) => ({
+        ...prev,
+        AI_EXTRACTION: response.extraction || prev.AI_EXTRACTION,
+        PROFILE_KEYWORDS: response.keywords || prev.PROFILE_KEYWORDS,
+      }));
       toast.success('AI extraction completed!');
     } catch {
       toast.error('Failed to connect to AI service.');
@@ -445,7 +449,7 @@ const EditDemandModal = ({ isOpen, onClose, onSuccess, customerId, demandId }) =
         .edm-footer { border-bottom: none; border-top: 1px solid var(--ats-border); justify-content: flex-end; gap: 12px; padding: 16px 24px 20px; }
         .edm-close { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: none; border: none; border-radius: 8px; color: var(--ats-secondary); cursor: pointer; }
         .edm-close:hover { background: var(--ats-bg-accent); color: var(--ats-primary); }
-        .edm-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+        .edm-body { padding: 20px 24px; overflow-y: auto; overflow-x: hidden; flex: 1; }
         .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
         .form-label { font-size: 14px; font-weight: 600; color: var(--ats-neutral); }
         .form-input, .form-select, .form-textarea {
@@ -540,7 +544,53 @@ const EditDemandModal = ({ isOpen, onClose, onSuccess, customerId, demandId }) =
         .edm-checkbox { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ats-neutral); }
         .edm-checkbox input { width: 16px; height: 16px; accent-color: #2563eb; }
         .edm-readonly-file { background: #f8fafc; color: var(--ats-neutral); cursor: default; }
-        @media (max-width: 768px) { .edm-modal { width: 100%; max-width: 100%; top: auto; bottom: 0; left: 0; transform: none; border-radius: 16px 16px 0 0; max-height: 95vh; } .edm-row, .edm-score-grid, .edm-status-row { grid-template-columns: 1fr; } }
+        @media (max-width: 1024px) {
+          .edm-modal {
+            width: min(920px, calc(100vw - 24px));
+            max-height: 92vh;
+          }
+          .edm-row, .edm-score-grid, .edm-status-row {
+            grid-template-columns: 1fr;
+          }
+        }
+        @media (max-width: 768px) {
+          .edm-modal {
+            width: 100%;
+            max-width: 100%;
+            top: auto;
+            bottom: 0;
+            left: 0;
+            transform: none;
+            border-radius: 16px 16px 0 0;
+            max-height: 95vh;
+          }
+          .edm-header,
+          .edm-footer {
+            padding-left: 16px;
+            padding-right: 16px;
+          }
+          .edm-body {
+            padding: 16px;
+          }
+          .edm-footer {
+            flex-direction: column-reverse;
+          }
+          .edm-footer .btn-primary,
+          .edm-footer .btn-secondary,
+          .btn-ai {
+            width: 100%;
+            justify-content: center;
+          }
+          .edm-row, .edm-score-grid, .edm-status-row {
+            grid-template-columns: 1fr;
+          }
+        }
+        @media (max-width: 480px) {
+          .file-upload-btn {
+            width: 100%;
+            justify-content: center;
+          }
+        }
       `}</style>
     </>
   );

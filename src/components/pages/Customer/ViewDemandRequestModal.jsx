@@ -247,6 +247,7 @@ const ViewDemandRequestModal = ({ isOpen, onClose, customerId, demandId }) => {
         .vdr-body {
           padding: 20px 24px;
           overflow-y: auto;
+          overflow-x: hidden;
           flex: 1;
         }
         .vdr-footer {
@@ -279,10 +280,32 @@ const ViewDemandRequestModal = ({ isOpen, onClose, customerId, demandId }) => {
           border-style: dashed;
           cursor: default;
         }
+        @media (max-width: 1024px) {
+          .vdr-modal {
+            width: min(900px, calc(100vw - 24px));
+            max-height: 92vh;
+          }
+          .vdr-grid {
+            grid-template-columns: 1fr;
+          }
+          .vdr-full {
+            grid-column: auto;
+          }
+        }
         @media (max-width: 768px) {
           .vdr-modal {
             width: calc(100vw - 12px);
             max-height: 92vh;
+          }
+          .vdr-header,
+          .vdr-body,
+          .vdr-footer {
+            padding-left: 16px;
+            padding-right: 16px;
+          }
+          .vdr-footer .btn-secondary {
+            width: 100%;
+            justify-content: center;
           }
           .vdr-grid {
             grid-template-columns: 1fr;

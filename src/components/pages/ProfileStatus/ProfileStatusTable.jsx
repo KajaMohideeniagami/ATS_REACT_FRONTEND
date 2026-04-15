@@ -5,7 +5,95 @@ import Loader from "../../common/Loader";
 import { toast } from "../../toast/index";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const PAGE_SIZE = 7;
+const PAGE_SIZE = 10;
+const DEFAULT_TIMEZONE = "Asia/Kolkata";
+
+const getMatchScoreValue = (row) => {
+  if (!row) return "";
+
+  const raw =
+    row.match_score ??
+    row.MATCH_SCORE ??
+    row.ai_profile_score ??
+    row.AI_PROFILE_SCORE ??
+    "";
+
+  if (raw && typeof raw === "object" && "v" in raw) {
+    return String(raw.v || "").trim();
+  }
+
+  return String(raw || "").trim();
+};
+
+const getMatchScoreMeta = (value) => {
+  const text = String(value || "").trim();
+  const numericScore = Number.parseInt(text, 10);
+
+  if (Number.isNaN(numericScore)) {
+    return {
+      scoreText: text,
+      icon: "",
+      background: "rgba(14,165,233,0.12)",
+      color: "#0369a1",
+      border: "1px solid rgba(14,165,233,0.22)",
+    };
+  }
+
+  if (numericScore >= 75) {
+    return {
+      scoreText: `${numericScore}/100`,
+      icon: "✓",
+      background: "rgba(34,197,94,0.12)",
+      color: "#15803d",
+      border: "1px solid rgba(34,197,94,0.24)",
+    };
+  }
+
+  if (numericScore >= 50) {
+    return {
+      scoreText: `${numericScore}/100`,
+      icon: "!",
+      background: "rgba(245,158,11,0.12)",
+      color: "#b45309",
+      border: "1px solid rgba(245,158,11,0.24)",
+    };
+  }
+
+  return {
+    scoreText: `${numericScore}/100`,
+    icon: "✕",
+    background: "rgba(239,68,68,0.12)",
+    color: "#dc2626",
+    border: "1px solid rgba(239,68,68,0.24)",
+  };
+};
+
+const toDatetimeLocalInTimezone = (value, timeZone = DEFAULT_TIMEZONE) => {
+  if (!value) return "";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+
+  const get = (type) => parts.find((part) => part.type === type)?.value || "";
+  const year = get("year");
+  const month = get("month");
+  const day = get("day");
+  const hour = get("hour");
+  const minute = get("minute");
+
+  if (!year || !month || !day || !hour || !minute) return "";
+  return `${year}-${month}-${day}T${hour}:${minute}`;
+};
 
 const ProfileStatusTable = ({ data, reload, loading }) => {
   const [rows, setRows] = useState(data);
@@ -30,7 +118,16 @@ const ProfileStatusTable = ({ data, reload, loading }) => {
   }, []);
 
   useEffect(() => {
-    setRows(data);
+    const normalizedRows = (data || []).map((row) => {
+      const tz = row.interview_timezone || DEFAULT_TIMEZONE;
+      return {
+        ...row,
+        interview_timezone: tz,
+        interview_datetime: toDatetimeLocalInTimezone(row.interview_datetime, tz),
+      };
+    });
+
+    setRows(normalizedRows);
     setPage(1);
   }, [data]);
 
@@ -57,7 +154,7 @@ const ProfileStatusTable = ({ data, reload, loading }) => {
         profile_status_id: Number(row.profile_status_id),
         notes: row.notes || null,
         interview_datetime: formattedDatetime,
-        interview_timezone: row.interview_timezone || "Asia/Kolkata",
+        interview_timezone: row.interview_timezone || DEFAULT_TIMEZONE,
       };
 
       const res = await updateProfileStatus(payload);
@@ -189,30 +286,26 @@ const ProfileStatusTable = ({ data, reload, loading }) => {
   };
 
   const matchStyle = {
-    display: "inline-block",
-    padding: "5px 10px",
-    background: "rgba(5,150,105,0.1)",
-    color: "#059669",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    minWidth: 86,
+    padding: "7px 12px",
     borderRadius: 999,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 700,
-    border: "1px solid rgba(5,150,105,0.2)",
+    lineHeight: 1,
+    whiteSpace: "nowrap",
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.7)",
   };
 
   const updateButtonStyle = {
-    padding: "8px 16px",
+    minWidth: 92,
+    justifyContent: "center",
+    padding: "10px 16px",
     fontSize: 12,
-    fontWeight: 700,
-    color: "#fff",
-    background: "linear-gradient(135deg, var(--ats-primary) 0%, #2563eb 100%)",
-    border: "none",
-    borderRadius: 10,
-    cursor: "pointer",
-    fontFamily: "Inter, sans-serif",
-    whiteSpace: "nowrap",
-    transition: "all 0.15s ease",
-    boxShadow: "0 12px 20px rgba(37, 99, 235, 0.18)",
+    letterSpacing: "0.4px",
   };
 
   return (
@@ -287,7 +380,7 @@ const ProfileStatusTable = ({ data, reload, loading }) => {
             <col style={{ width: "150px" }} />
             <col style={{ width: "185px" }} />
             <col style={{ width: "220px" }} />
-            <col style={{ width: "65px" }} />
+            <col style={{ width: "100px" }} />
             <col style={{ width: "175px" }} />
             <col style={{ width: "120px" }} />
             <col style={{ width: "90px" }} />
@@ -309,6 +402,8 @@ const ProfileStatusTable = ({ data, reload, loading }) => {
             {pagedRows.map((row, i) => {
               const globalIndex = rows.findIndex((r) => r.profile_id === row.profile_id);
               const isEven = i % 2 === 0;
+              const matchScore = getMatchScoreValue(row);
+              const matchMeta = matchScore ? getMatchScoreMeta(matchScore) : null;
 
               return (
                 <tr
@@ -366,7 +461,25 @@ const ProfileStatusTable = ({ data, reload, loading }) => {
                   </td>
 
                   <td style={{ ...cellStyle, textAlign: "center" }}>
-                    {row.match_score ? <span style={matchStyle}>{row.match_score}</span> : "-"}
+                    {matchMeta ? (
+                      <span
+                        style={{
+                          ...matchStyle,
+                          background: matchMeta.background,
+                          color: matchMeta.color,
+                          border: matchMeta.border,
+                        }}
+                      >
+                        <span>{matchMeta.scoreText}</span>
+                        {matchMeta.icon ? (
+                          <span style={{ fontSize: 14, fontWeight: 800, lineHeight: 1 }}>
+                            {matchMeta.icon}
+                          </span>
+                        ) : null}
+                      </span>
+                    ) : (
+                      "-"
+                    )}
                   </td>
 
                   <td style={cellStyle}>
@@ -381,7 +494,7 @@ const ProfileStatusTable = ({ data, reload, loading }) => {
                   <td style={cellStyle}>
                     <select
                       style={inputStyle}
-                      value={row.interview_timezone || "Asia/Kolkata"}
+                      value={row.interview_timezone || DEFAULT_TIMEZONE}
                       onChange={(e) => handleChange(globalIndex, "interview_timezone", e.target.value)}
                     >
                       <option value="Asia/Kolkata">India (IST)</option>
@@ -393,17 +506,9 @@ const ProfileStatusTable = ({ data, reload, loading }) => {
 
                   <td style={{ ...cellStyle, textAlign: "center" }}>
                     <button
+                      className="btn-primary"
                       onClick={() => handleUpdate(row)}
                       style={updateButtonStyle}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)";
-                        e.currentTarget.style.transform = "translateY(-1px)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background =
-                          "linear-gradient(135deg, var(--ats-primary) 0%, #2563eb 100%)";
-                        e.currentTarget.style.transform = "translateY(0)";
-                      }}
                     >
                       Update
                     </button>
