@@ -10,6 +10,7 @@ const api = axios.create({
     'Accept': 'application/json',
   },
 });
+
 attachGlobalLoaderInterceptors(api);
 
 const AI_GATEWAY_URL = process.env.REACT_APP_AI_GATEWAY_URL
@@ -17,6 +18,9 @@ const AI_GATEWAY_URL = process.env.REACT_APP_AI_GATEWAY_URL
   : '';
 const AI_GATEWAY_KEY = process.env.REACT_APP_AI_GATEWAY_KEY;
 const AI_MODEL = 'oci/xai.grok-3';
+const PROMPT_TYPE_PROFILE_PARSE = 'PROFILE_PARSING';
+const PROFILE_PARSE_FALLBACK_PROMPT = `
+`;
 
 const aiApi = axios.create({
   baseURL: AI_GATEWAY_URL,
@@ -70,6 +74,181 @@ const parseScore = (text) => {
   }
   const icon = scoreNum >= 70 ? '✅' : '❌';
   return `${scoreNum}/100 ${icon}`;
+};
+
+const cleanAiContent = (content) =>
+  String(content || '')
+    .replace(/```json\s*/gi, '')
+    .replace(/```\s*/g, '')
+    .trim();
+
+const safeJsonParse = (content) => {
+  const text = cleanAiContent(content);
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {}
+
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) return null;
+
+  try {
+    return JSON.parse(match[0]);
+  } catch {
+    return null;
+  }
+};
+
+const normalizeParsedProfile = (data) => {
+  if (!data || typeof data !== 'object') return null;
+
+  return {
+    profile_name:
+      data.profile_name ||
+      data.name ||
+      data.full_name ||
+      data.fullName ||
+      data.candidate_name ||
+      data.candidateName ||
+      '',
+    profile_email:
+      data.profile_email ||
+      data.email ||
+      data.email_id ||
+      data.emailId ||
+      '',
+    profile_contact_no:
+      data.profile_contact_no ||
+      data.contact_no ||
+      data.contactNo ||
+      data.phone ||
+      data.mobile ||
+      '',
+    current_location:
+      data.current_location ||
+      data.location ||
+      data.currentLocation ||
+      '',
+    current_company:
+      data.current_company ||
+      data.company ||
+      data.currentCompany ||
+      data.employer ||
+      '',
+    preferred_location:
+      data.preferred_location ||
+      data.preferredLocation ||
+      data.location_preference ||
+      '',
+    work_mode:
+      data.work_mode ||
+      data.work_mode_label ||
+      data.workMode ||
+      data.workModeLabel ||
+      '',
+    work_exp_in_years:
+      data.work_exp_in_years ||
+      data.total_experience ||
+      data.totalExperience ||
+      data.experience_years ||
+      data.experienceYears ||
+      '',
+    relevant_exp_in_years:
+      data.relevant_exp_in_years ||
+      data.relevant_experience ||
+      data.relevantExperience ||
+      data.relevant_exp_years ||
+      '',
+    salary_currency:
+      data.salary_currency ||
+      data.currency ||
+      data.currency_code ||
+      data.salaryCurrency ||
+      '',
+    current_salary_pa:
+      data.current_salary_pa ||
+      data.current_salary ||
+      data.currentCtc ||
+      data.current_ctc ||
+      '',
+    expected_salary_pa:
+      data.expected_salary_pa ||
+      data.expected_salary ||
+      data.expectedCtc ||
+      data.expected_ctc ||
+      '',
+    profile_availability:
+      data.profile_availability ||
+      data.availability ||
+      data.availability_status ||
+      '',
+    notice_period_days:
+      data.notice_period_days ||
+      data.notice_period ||
+      data.noticePeriodDays ||
+      '',
+    negotiable_days:
+      data.negotiable_days ||
+      data.negotiable ||
+      data.negotiableDays ||
+      '',
+    tax_terms:
+      data.tax_terms ||
+      data.taxTerms ||
+      data.tax_term ||
+      '',
+    notes:
+      data.notes ||
+      data.summary ||
+      data.profile_summary ||
+      '',
+  };
+};
+
+export const parseResumeProfile = async ({ profileText }) => {
+  if (!profileText?.trim()) {
+    return { success: false, message: 'Profile text is required.' };
+  }
+
+  try {
+    if (!AI_GATEWAY_URL) {
+      return { success: false, message: 'AI gateway URL is missing. Set REACT_APP_AI_GATEWAY_URL in .env.' };
+    }
+
+    let promptText = PROFILE_PARSE_FALLBACK_PROMPT;
+    try {
+      const dbPrompt = await getPromptText(PROMPT_TYPE_PROFILE_PARSE);
+      if (String(dbPrompt || '').trim()) {
+        promptText = String(dbPrompt).trim();
+      }
+    } catch {}
+
+    const content = await callAi([
+      { role: 'user', content: String(promptText).trim() },
+      { role: 'user', content: String(profileText).trim() },
+    ]);
+
+    const parsed = safeJsonParse(content);
+    if (!parsed) {
+      return {
+        success: false,
+        message: 'AI returned an unparseable profile response.',
+        raw: cleanAiContent(content),
+      };
+    }
+
+    return {
+      success: true,
+      parsed: normalizeParsedProfile(parsed),
+      raw: cleanAiContent(content),
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error?.response?.data?.message || error?.message || 'Profile parsing failed.',
+    };
+  }
 };
 
 export const analyzeProfile = async ({ profileText, jdSummary, weights }) => {

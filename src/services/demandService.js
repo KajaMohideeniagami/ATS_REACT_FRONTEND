@@ -29,6 +29,52 @@ const aiApi = axios.create({
   },
 });
 
+const safeJsonParse = (value) => {
+  if (!value || typeof value !== 'string') return null;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+};
+
+const normalizeOciSignedUrl = (value) => {
+  if (!value) return '';
+
+  try {
+    const url = new URL(String(value));
+    const customerHostMatch = url.hostname.match(/^objectstorage\.([^.]+)\.oci\.customer-oci\.com$/i);
+    if (customerHostMatch) {
+      url.hostname = `objectstorage.${customerHostMatch[1]}.oraclecloud.com`;
+    }
+    url.pathname = decodeURI(url.pathname);
+    return url.toString();
+  } catch {
+    return String(value).trim();
+  }
+};
+
+const normalizeDownloadResponse = (data) => {
+  const parsedNested = typeof data?.response === 'string' ? safeJsonParse(data.response) : null;
+  const source = parsedNested || data || {};
+  const downloadUrl =
+    source.download_url ||
+    source.downloadUrl ||
+    source.url ||
+    source.fullPath ||
+    source.full_path ||
+    source.accessUri ||
+    source.access_uri ||
+    '';
+
+  return {
+    success: Boolean(source.success ?? downloadUrl),
+    download_url: normalizeOciSignedUrl(downloadUrl),
+    message: source.message || source.error || '',
+    raw: source,
+  };
+};
+
 export const addDemand = async (demandData) => {
   try {
     const response = await api.post(API_ENDPOINTS.ADD_DEMAND, demandData);
@@ -136,8 +182,10 @@ export const getDemandDownloadUrl = async (demandId, fileType = 'IQ') => {
         file_type: fileType,
       },
     });
-    console.log('Demand Download Response:', response.data);
-    return response.data;
+    const data = typeof response.data === 'string' ? safeJsonParse(response.data) || response.data : response.data;
+    const normalized = normalizeDownloadResponse(data);
+    console.log('Demand Download Response:', normalized);
+    return normalized;
   } catch (error) {
     console.error('Demand Download Error:', error);
     throw error;

@@ -6,7 +6,7 @@ import AiLoader from "../../common/AiLoader";
 import axios from "axios";
 import { API_BASE_URL, API_ENDPOINTS, LOV_ENDPOINTS } from "../../../config/apiConfig";
 import { getDemandDetails } from "../../../services/demandService";
-import { analyzeProfile } from "../../../services/profileAiService";
+import { analyzeProfile, parseResumeProfile } from "../../../services/profileAiService";
 import { getProfileView } from "../../../services/profileViewService";
 import { validateRequiredFields } from "../../../utils/formValidation";
 import mammoth from "mammoth";
@@ -156,6 +156,212 @@ const ReadField = ({ label, value }) => (
   </div>
 );
 
+const normalizeForMatch = (value) =>
+  String(value ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+const firstMatch = (text, patterns) => {
+  for (const pattern of patterns) {
+    const match = String(text || "").match(pattern);
+    if (match) return match[1] ?? match[0];
+  }
+  return "";
+};
+
+const parseYearsFromText = (text, patterns) => {
+  const raw = firstMatch(text, patterns);
+  if (!raw) return "";
+  const cleaned = String(raw).replace(/[^\d.]/g, "");
+  return cleaned || "";
+};
+
+const parseSalaryFromText = (text, patterns) => {
+  const raw = firstMatch(text, patterns);
+  if (!raw) return "";
+  return String(raw)
+    .replace(/\s+/g, " ")
+    .replace(/^(?:current|expected|present|ctc|salary|package|compensation|remuneration)[\s:-]*/i, "")
+    .trim();
+};
+
+const parseNoticeDays = (text) => {
+  const noticeText = firstMatch(text, [
+    /notice\s*period[^0-9a-zA-Z]*([^\n\r]+)/i,
+    /available\s*after[^0-9a-zA-Z]*([^\n\r]+)/i,
+    /serving\s*notice[^0-9a-zA-Z]*([^\n\r]+)/i,
+  ]);
+  if (!noticeText) return "";
+
+  const daysMatch = String(noticeText).match(/(\d+(?:\.\d+)?)\s*(?:days?|d)\b/i);
+  if (daysMatch) return daysMatch[1];
+
+  const weeksMatch = String(noticeText).match(/(\d+(?:\.\d+)?)\s*(?:weeks?|w)\b/i);
+  if (weeksMatch) return String(Math.round(Number(weeksMatch[1]) * 7));
+
+  const monthsMatch = String(noticeText).match(/(\d+(?:\.\d+)?)\s*(?:months?|mo|m)\b/i);
+  if (monthsMatch) return String(Math.round(Number(monthsMatch[1]) * 30));
+
+  return "";
+};
+
+const parseTaxTermsFromText = (text) => {
+  const upper = String(text || "").toUpperCase();
+  const options = ["C2C", "W2", "1099", "FTE", "FULL TIME", "FULL-TIME", "CORP-CORP"];
+  const found = options.filter((opt) => upper.includes(opt.replace(/[^A-Z0-9]+/g, "")) || upper.includes(opt));
+  if (!found.length) return "";
+  const unique = [...new Set(found)];
+  return unique.join(" / ");
+};
+
+const pickLovValue = (lovs, candidate) => {
+  const normalizedCandidate = normalizeForMatch(candidate);
+  if (!normalizedCandidate) return "";
+
+  const exact = lovs.find((item) => {
+    const value = normalizeForMatch(item.value);
+    const label = normalizeForMatch(item.label);
+    return value === normalizedCandidate || label === normalizedCandidate;
+  });
+  if (exact) return String(exact.value);
+
+  const partial = lovs.find((item) => {
+    const value = normalizeForMatch(item.value);
+    const label = normalizeForMatch(item.label);
+    if (!value && !label) return false;
+    return value.includes(normalizedCandidate) || label.includes(normalizedCandidate) || normalizedCandidate.includes(label);
+  });
+  return partial ? String(partial.value) : "";
+};
+
+const parseResumeLocally = (text) => {
+  const lines = String(text || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const email = firstMatch(text, [/([^\s@]+@[^\s@]+\.[^\s@]+)/i]);
+  const phone = firstMatch(text, [
+    /(\+?\d[\d\s().-]{7,}\d)/,
+  ]);
+
+  const nameLine = lines.find((line) => {
+    const normalized = normalizeForMatch(line);
+    if (!normalized) return false;
+    if (line.includes("@")) return false;
+    if (/resume|curriculum vitae|cv\b|profile\b/i.test(line)) return false;
+    if (/experience|skills|education|summary|projects|employment|contact/i.test(line)) return false;
+    return /^[a-z][a-z\s.'-]{2,}$/i.test(line) && line.split(/\s+/).length <= 5;
+  }) || "";
+
+  const location = firstMatch(text, [
+    /current\s*location[:\s-]*([^\n\r]+)/i,
+    /location[:\s-]*([^\n\r]+)/i,
+    /based\s+in[:\s-]*([^\n\r]+)/i,
+    /present\s*location[:\s-]*([^\n\r]+)/i,
+  ]);
+
+  const preferredLocation = firstMatch(text, [
+    /preferred\s*location[:\s-]*([^\n\r]+)/i,
+    /location\s*preference[:\s-]*([^\n\r]+)/i,
+    /willing\s+to\s+relocate(?:\s+to)?[:\s-]*([^\n\r]+)/i,
+  ]);
+
+  const currentCompany = firstMatch(text, [
+    /current\s*company[:\s-]*([^\n\r]+)/i,
+    /currently\s+at[:\s-]*([^\n\r]+)/i,
+    /working\s+at[:\s-]*([^\n\r]+)/i,
+    /employer[:\s-]*([^\n\r]+)/i,
+  ]);
+
+  const workExp = parseYearsFromText(text, [
+    /(?:total\s*)?(?:work\s*)?(?:experience|exp)[^\d]{0,20}(\d+(?:\.\d+)?)/i,
+    /(\d+(?:\.\d+)?)\+?\s*(?:years?|yrs?)\s*(?:of\s*)?(?:experience|exp)\b/i,
+  ]);
+
+  const relevantExp = parseYearsFromText(text, [
+    /relevant\s*(?:experience|exp)[^\d]{0,20}(\d+(?:\.\d+)?)/i,
+    /(\d+(?:\.\d+)?)\+?\s*(?:years?|yrs?)\s*(?:of\s*)?relevant\s*(?:experience|exp)\b/i,
+  ]);
+
+  const currentSalary = parseSalaryFromText(text, [
+    /(?:current|present)\s*(?:salary|ctc|compensation|package|remuneration)[^\n\r]*([^\n\r]+)/i,
+    /\b(?:current|present)\s*ctc[^\n\r]*([^\n\r]+)/i,
+  ]);
+
+  const expectedSalary = parseSalaryFromText(text, [
+    /expected\s*(?:salary|ctc|compensation|package|remuneration)[^\n\r]*([^\n\r]+)/i,
+    /\bexpected\s*ctc[^\n\r]*([^\n\r]+)/i,
+  ]);
+
+  const availability = firstMatch(text, [
+    /availability[:\s-]*([^\n\r]+)/i,
+    /notice\s*period[:\s-]*([^\n\r]+)/i,
+    /immediate\s*joiner/i,
+    /serving\s*notice/i,
+  ]);
+
+  return {
+    PROFILE_NAME: nameLine,
+    PROFILE_EMAIL: email,
+    PROFILE_CONTACT_NO: phone,
+    CURRENT_LOCATION: location,
+    CURRENT_COMPANY: currentCompany,
+    PREFERRED_LOCATION: preferredLocation,
+    WORK_EXP_IN_YEARS: workExp,
+    RELEVANT_EXP_IN_YEARS: relevantExp,
+    CURRENT_SALARY_PA: currentSalary,
+    EXPECTED_SALARY_PA: expectedSalary,
+    PROFILE_AVAILABILITY: availability,
+    NOTICE_PERIOD_DAYS: parseNoticeDays(text),
+    TAX_TERMS: parseTaxTermsFromText(text),
+  };
+};
+
+const mapParsedResumeToForm = (parsed, lookups) => {
+  const profile = parsed?.parsed || parsed || {};
+  const mapped = { ...profile };
+
+  if (profile.work_mode && !mapped.WORK_MODE_ID) {
+    mapped.WORK_MODE_ID = pickLovValue(lookups.workModes, profile.work_mode);
+  }
+
+  if (profile.salary_currency && !mapped.SALARY_CURRENCY_ID) {
+    mapped.SALARY_CURRENCY_ID = pickLovValue(lookups.currencies, profile.salary_currency);
+  }
+
+  if (profile.profile_availability) {
+    const availabilityValue = pickLovValue(lookups.availabilityOpts, profile.profile_availability);
+    mapped.PROFILE_AVAILABILITY = availabilityValue || profile.profile_availability;
+  }
+
+  if (profile.tax_terms) {
+    const taxTermsValue = pickLovValue(lookups.taxTermsOpts, profile.tax_terms);
+    mapped.TAX_TERMS = taxTermsValue || profile.tax_terms;
+  }
+
+  return {
+    PROFILE_NAME: mapped.PROFILE_NAME || profile.profile_name || "",
+    PROFILE_EMAIL: mapped.PROFILE_EMAIL || profile.profile_email || "",
+    PROFILE_CONTACT_NO: mapped.PROFILE_CONTACT_NO || profile.profile_contact_no || "",
+    CURRENT_LOCATION: mapped.CURRENT_LOCATION || profile.current_location || "",
+    CURRENT_COMPANY: mapped.CURRENT_COMPANY || profile.current_company || "",
+    PREFERRED_LOCATION: mapped.PREFERRED_LOCATION || profile.preferred_location || "",
+    WORK_MODE_ID: mapped.WORK_MODE_ID || "",
+    WORK_EXP_IN_YEARS: mapped.WORK_EXP_IN_YEARS || profile.work_exp_in_years || "",
+    RELEVANT_EXP_IN_YEARS: mapped.RELEVANT_EXP_IN_YEARS || profile.relevant_exp_in_years || "",
+    SALARY_CURRENCY_ID: mapped.SALARY_CURRENCY_ID || "",
+    CURRENT_SALARY_PA: mapped.CURRENT_SALARY_PA || profile.current_salary_pa || "",
+    EXPECTED_SALARY_PA: mapped.EXPECTED_SALARY_PA || profile.expected_salary_pa || "",
+    PROFILE_AVAILABILITY: mapped.PROFILE_AVAILABILITY || profile.profile_availability || "",
+    NOTICE_PERIOD_DAYS: mapped.NOTICE_PERIOD_DAYS || profile.notice_period_days || "",
+    NEGOTIABLE_DAYS: mapped.NEGOTIABLE_DAYS || profile.negotiable_days || "",
+    TAX_TERMS: mapped.TAX_TERMS || profile.tax_terms || "",
+    NOTES: mapped.NOTES || profile.notes || "",
+  };
+};
+
 // ═════════════════════════════════════════════════════════════════════════════
 const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, demands = [], customerId, editProfile = null }) => {
   const [formData,           setFormData]          = useState(initialForm);
@@ -191,6 +397,28 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
     }
     return [selected, ...openOnly];
   }, [demands, editProfile?.profile_id, selectedDemandId]);
+
+  const applyParsedResumeData = useCallback((parsed) => {
+    if (!parsed) return;
+
+    const merged = mapParsedResumeToForm(parsed, {
+      workModes,
+      currencies,
+      availabilityOpts,
+      taxTermsOpts,
+    });
+
+    setFormData((prev) => {
+      const next = { ...prev };
+      Object.entries(merged).forEach(([key, value]) => {
+        if (value === undefined || value === null) return;
+        const text = String(value).trim();
+        if (!text) return;
+        next[key] = text;
+      });
+      return next;
+    });
+  }, [availabilityOpts, currencies, taxTermsOpts, workModes]);
 
   const fileInputRef = useRef(null);
   const isAnalysisComplete = Boolean(
@@ -408,11 +636,19 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
           extractedText = await extractDOCX(file);
         } else {
           toast.error("DOC format not supported for extraction. Please use PDF or DOCX.");
-          extractedText = "";
+          return;
         }
 
         if (!extractedText.trim()) {
           toast.error("No text could be extracted from the file.");
+          return;
+        }
+
+        applyParsedResumeData(parseResumeLocally(extractedText));
+
+        const parsedResume = await parseResumeProfile({ profileText: extractedText });
+        if (parsedResume.success && parsedResume.parsed) {
+          applyParsedResumeData(parsedResume.parsed);
         }
 
         setFormData((p) => ({
@@ -976,7 +1212,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
                   onChange={handleFileChange}
                 />
                 {profileParsing ? (
-                  <span className="dm-upload-hint">Extracting text...</span>
+                  <span className="dm-upload-hint">Extracting and pre-filling...</span>
                 ) : uploadingFile ? (
                   <span className="dm-upload-hint">Uploading...</span>
                 ) : selectedFileName ? (
