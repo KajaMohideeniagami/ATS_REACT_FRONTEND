@@ -1605,6 +1605,8 @@ a:hover {
   height: calc(100vh - 58px);
   position: sticky;
   top: 58px;
+  display: flex;
+  flex-direction: column;
 }
 
 .app-sidebar-nav {
@@ -1612,6 +1614,12 @@ a:hover {
   flex-direction: column;
   padding: 0;
   overflow: hidden;
+  flex: 1;
+}
+
+.app-sidebar-footer {
+  margin-top: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .app-sidebar-group {

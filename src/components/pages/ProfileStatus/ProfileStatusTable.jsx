@@ -95,6 +95,28 @@ const toDatetimeLocalInTimezone = (value, timeZone = DEFAULT_TIMEZONE) => {
   return `${year}-${month}-${day}T${hour}:${minute}`;
 };
 
+const getCurrentDatetimeLocalInTimezone = (timeZone = DEFAULT_TIMEZONE) => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date());
+
+  const get = (type) => parts.find((part) => part.type === type)?.value || "";
+  const year = get("year");
+  const month = get("month");
+  const day = get("day");
+  const hour = get("hour");
+  const minute = get("minute");
+
+  if (!year || !month || !day || !hour || !minute) return "";
+  return `${year}-${month}-${day}T${hour}:${minute}`;
+};
+
 const ProfileStatusTable = ({ data, reload, loading }) => {
   const [rows, setRows] = useState(data);
   const [statusOptions, setStatusOptions] = useState([]);
@@ -143,6 +165,16 @@ const ProfileStatusTable = ({ data, reload, loading }) => {
       if (requiresInterview.includes(Number(row.profile_status_id)) && !row.interview_datetime) {
         toast.error("Interview date is required for this status");
         return;
+      }
+
+      if (row.interview_datetime) {
+        const minInterviewDatetime = getCurrentDatetimeLocalInTimezone(
+          row.interview_timezone || DEFAULT_TIMEZONE
+        );
+        if (minInterviewDatetime && row.interview_datetime < minInterviewDatetime) {
+          toast.error("Interview date must be current or future");
+          return;
+        }
       }
 
       const formattedDatetime = row.interview_datetime
@@ -487,6 +519,7 @@ const ProfileStatusTable = ({ data, reload, loading }) => {
                       type="datetime-local"
                       style={inputStyle}
                       value={row.interview_datetime || ""}
+                      min={getCurrentDatetimeLocalInTimezone(row.interview_timezone || DEFAULT_TIMEZONE)}
                       onChange={(e) => handleChange(globalIndex, "interview_datetime", e.target.value)}
                     />
                   </td>

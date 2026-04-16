@@ -45,6 +45,7 @@ export const API_ENDPOINTS = Object.freeze({
   ADD_VENDOR: '/addvendors/vendor',
   DOWNLOAD_PROFILE: '/downloadprofile/profile',
   SEND_VENDOR_EMAIL: '/vendor-email/send',
+  RESET_PASSWORD: '/ats/users/ats_users',
 });
 
 export const LOV_ENDPOINTS = Object.freeze({

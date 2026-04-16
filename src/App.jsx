@@ -29,6 +29,8 @@ import VendorReportPage from './components/pages/VendorReport/VendorReportPage';
 import CandidateReportPage from './components/pages/CandidateReport/CandidateReportPage';
 import VendorMasterPage from './components/pages/VendorMaster/VendorMasterPage';
 import { LoaderProvider } from './context/LoaderContext';
+import UserProfilePage from './components/pages/UserProfile/UserProfilePage';
+import { UserCircle } from 'lucide-react';
 import './global.css';
 
 const NAV_ITEMS = [
@@ -49,6 +51,8 @@ const NAV_ITEMS = [
   },
   { label: 'Vendor Master', icon: Building2, path: '/vendor-master' },
 ];
+
+const BOTTOM_NAV_ITEM = { label: 'My Profile', icon: UserCircle, path: '/profile' };
 
 const AppShell = ({ children }) => {
   const location = useLocation();
@@ -207,6 +211,17 @@ const AppShell = ({ children }) => {
                 );
               })}
           </nav>
+          <div className="app-sidebar-footer">
+            <button
+              type="button"
+              className={`app-sidebar-link ${location.pathname === BOTTOM_NAV_ITEM.path ? 'active' : ''}`}
+              onClick={() => handleNavClick(BOTTOM_NAV_ITEM)}
+              title={BOTTOM_NAV_ITEM.label}
+            >
+              <BOTTOM_NAV_ITEM.icon size={18} />
+              <span className="app-sidebar-label">{BOTTOM_NAV_ITEM.label}</span>
+            </button>
+          </div>
         </aside>
 
         <main className="app-content">{children}</main>
@@ -387,6 +402,17 @@ const App = () => {
                     storageKey="ats_customer_rejected_report_column_prefs"
                     description="Filter and review customer rejected candidate records in one place."
                   />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <UserProfilePage />
                 </AppShell>
               </ProtectedRoute>
             }
