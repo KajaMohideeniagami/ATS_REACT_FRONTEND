@@ -857,16 +857,18 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
       // ✅ Upload file after profile is saved
       if (selectedFile) {
         setUploadingFile(true);
-
         const base64 = await fileToBase64(selectedFile);
 
+        const cleanBase64 = base64.includes(',')
+          ? base64.split(',')[1]
+          : base64;
         const uploadRes = await api.post(
           API_ENDPOINTS.PROFILE_UPLOAD,
           {
-            profile_id:     profileId,
-            file_name:      selectedFile.name,
-            file_base64:    base64,
+            profile_id: profileId,
+            file_name: selectedFile.name,
             file_mime_type: selectedFile.type || 'application/octet-stream',
+            file_base64: cleanBase64  // 🔥 IMPORTANT FIX
           }
         );
 
@@ -878,11 +880,10 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
 
         setFormData((p) => ({
           ...p,
-          FILE_NAME:   uploadRes.data.file_name,
+          FILE_NAME: uploadRes.data.file_name,
           PROFILE_URL: uploadRes.data.profile_url,
         }));
       }
-
       toast.success(isEdit ? 'Profile updated successfully!' : 'Profile added successfully!');
       handleClose();
       onSuccess?.();
