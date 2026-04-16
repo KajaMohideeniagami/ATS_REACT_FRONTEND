@@ -126,7 +126,7 @@ const renderCellValue = (columnKey, value, row) => {
     return profileId ? (
       <button
         type="button"
-        className="table-link-btn"
+        className="btn-download"
         onClick={async () => {
           try {
             const response = await getProfileDownloadUrl(profileId);
@@ -140,6 +140,7 @@ const renderCellValue = (columnKey, value, row) => {
           }
         }}
       >
+        <Download size={14} />
         Download
       </button>
     ) : '-';

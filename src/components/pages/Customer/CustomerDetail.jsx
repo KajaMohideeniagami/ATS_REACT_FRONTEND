@@ -4,7 +4,7 @@ import { getCustomerDetails } from "../../../services/customerDetailService";
 import { getDemandDownloadUrl } from "../../../services/demandService";
 import { getProfileDownloadUrl } from "../../../services/profileDownloadService";
 import {
-  ArrowLeft, Pencil, Eye,
+  ArrowLeft, Pencil, Eye, Download,
   ChevronLeft, ChevronRight, Plus,
   UserPlus, Briefcase, User, Activity, Mail,
   ChevronDown, Trash2
@@ -212,7 +212,13 @@ const CustomerDetail = () => {
 
       window.open(response.download_url, "_blank", "noopener,noreferrer");
     } catch (err) {
-      toast.error(err.response?.data?.message || EMPTY_CELL);
+      const backendMessage =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.response?.data?.debug ||
+        err.message ||
+        "Failed to download profile.";
+      toast.error(backendMessage);
     }
   };
 
@@ -608,9 +614,10 @@ const CustomerDetail = () => {
                                 {p.profile_id ? (
                                   <button
                                     type="button"
-                                    className="table-link-btn"
+                                    className="btn-download"
                                     onClick={() => handleProfileDownload(p.profile_id)}
                                   >
+                                    <Download size={14} />
                                     Download
                                   </button>
                                 ) : "-"}

@@ -1,24 +1,21 @@
-import axios from 'axios';
-import { API_BASE_URL, API_ENDPOINTS } from '../config/apiConfig';
-
-const profileDownloadApi = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 60000,
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  },
-});
+import api from './api';
+import { API_ENDPOINTS } from '../config/apiConfig';
 
 export const getProfileDownloadUrl = async (profileId) => {
   try {
-    const response = await profileDownloadApi.get(API_ENDPOINTS.DOWNLOAD_PROFILE, {
+    const normalizedProfileId = Number.isFinite(Number(profileId)) ? Number(profileId) : profileId;
+
+    const response = await api.get(API_ENDPOINTS.DOWNLOAD_PROFILE, {
       params: {
-        profile_id: profileId,
+        profile_id: normalizedProfileId,
       },
+      timeout: 60000,
     });
 
-    const data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+    const data =
+      typeof response.data === 'string'
+        ? JSON.parse(response.data)
+        : response.data;
 
     return {
       success: Boolean(data?.success || data?.url || data?.download_url),
