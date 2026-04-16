@@ -52,7 +52,7 @@ const NAV_ITEMS = [
   { label: 'Vendor Master', icon: Building2, path: '/vendor-master' },
 ];
 
-const BOTTOM_NAV_ITEM = { label: 'My Profile', icon: UserCircle, path: '/profile' };
+// const BOTTOM_NAV_ITEM = { label: 'My Profile', icon: UserCircle, path: '/profile' };
 
 const AppShell = ({ children }) => {
   const location = useLocation();
@@ -211,7 +211,7 @@ const AppShell = ({ children }) => {
                 );
               })}
           </nav>
-          <div className="app-sidebar-footer">
+          {/* <div className="app-sidebar-footer">
             <button
               type="button"
               className={`app-sidebar-link ${location.pathname === BOTTOM_NAV_ITEM.path ? 'active' : ''}`}
@@ -221,7 +221,7 @@ const AppShell = ({ children }) => {
               <BOTTOM_NAV_ITEM.icon size={18} />
               <span className="app-sidebar-label">{BOTTOM_NAV_ITEM.label}</span>
             </button>
-          </div>
+          </div> */}
         </aside>
 
         <main className="app-content">{children}</main>
