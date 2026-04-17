@@ -5,6 +5,9 @@ const LoaderStateContext = createContext({
   showLoader: () => {},
   hideLoader: () => {},
   activeRequests: 0,
+  aiIsVisible: false,
+  showAiLoader: () => {},
+  hideAiLoader: () => {},
 });
 
 export default LoaderStateContext;

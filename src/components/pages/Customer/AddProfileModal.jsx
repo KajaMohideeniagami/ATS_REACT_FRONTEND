@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { X, Upload, FileText, Zap } from "lucide-react";
 import { toast } from "../../toast/index";
 import Loader from "../../common/Loader";
-import AiLoader from "../../common/AiLoader";
 import axios from "axios";
 import { API_BASE_URL, API_ENDPOINTS, LOV_ENDPOINTS } from "../../../config/apiConfig";
 import { getDemandDetails } from "../../../services/demandService";
@@ -10,6 +9,7 @@ import { analyzeProfile, parseResumeProfile } from "../../../services/profileAiS
 import { getProfileView } from "../../../services/profileViewService";
 import { validateRequiredFields } from "../../../utils/formValidation";
 import mammoth from "mammoth";
+import { useLoader } from "../../../context/LoaderContext";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -364,6 +364,7 @@ const mapParsedResumeToForm = (parsed, lookups) => {
 
 // ═════════════════════════════════════════════════════════════════════════════
 const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, demands = [], customerId, editProfile = null }) => {
+  const { showAiLoader, hideAiLoader } = useLoader();
   const [formData,           setFormData]          = useState(initialForm);
   const [errors,             setErrors]            = useState({});
   const [loading,            setLoading]           = useState(false);
@@ -669,8 +670,10 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
 
   const handleAnalyze = async () => {
     setAnalyzing(true);
+    showAiLoader({ mode: "profile", title: "AI Profile Analysis" });
     const endAnalyzeWithError = (message) => {
       toast.error(message);
+      hideAiLoader();
       setAnalyzing(false);
     };
     try {
@@ -750,6 +753,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
     } catch (err) {
       toast.error(err?.response?.data?.message || err?.message || "Analysis failed.");
     } finally {
+      hideAiLoader();
       setAnalyzing(false);
     }
   };
@@ -811,6 +815,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
     }
 
     const isEdit = Boolean(editProfile?.profile_id);
+    let createdProfileId = null;
     setLoading(true);
     try {
       const payload = {
@@ -853,6 +858,9 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
       }
 
       const profileId = editProfile?.profile_id || response.data.profile_id;
+      if (!isEdit) {
+        createdProfileId = Number(profileId);
+      }
 
       // ✅ Upload file after profile is saved
       if (selectedFile) {
@@ -889,7 +897,24 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
       onSuccess?.();
 
     } catch (err) {
-      toast.error(err?.response?.data?.message || err?.message || (isEdit ? 'Failed to update profile.' : 'Failed to add profile.'));
+      if (!isEdit && createdProfileId && selectedFile) {
+        try {
+          await api.delete(API_ENDPOINTS.DELETE_PROFILE, {
+            params: {
+              PROFILE_ID: createdProfileId,
+            },
+          });
+          toast.error('Profile upload failed.');
+        } catch (rollbackError) {
+          console.error('Profile rollback delete failed:', rollbackError);
+          toast.error(
+            `${err?.response?.data?.message || err?.message || 'Profile upload failed.'} `
+            + 'Rollback also failed. Please delete the created profile manually.'
+          );
+        }
+      } else {
+        toast.error(err?.response?.data?.message || err?.message || (isEdit ? 'Failed to update profile.' : 'Failed to add profile.'));
+      }
     } finally {
       setLoading(false);
       setUploadingFile(false);
@@ -1257,7 +1282,6 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
               </div>
               <div />
             </div>
-            {analyzing ? <AiLoader mode="profile" /> : null}
             <div className="form-group dm-full-span">
               <label className="form-label">Profile Summary</label>
               <textarea

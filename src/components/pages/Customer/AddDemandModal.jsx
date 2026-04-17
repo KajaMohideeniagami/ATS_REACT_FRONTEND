@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { X, Upload, Zap } from 'lucide-react';
 import { addDemand, extractJD, uploadDemandFiles } from '../../../services/demandService';
 import Loader from '../../common/Loader';
-import AiLoader from '../../common/AiLoader';
 import { toast } from '../../toast/index';
 import axios from 'axios';
 import { API_BASE_URL, LOV_ENDPOINTS } from '../../../config/apiConfig';
 import { attachGlobalLoaderInterceptors } from '../../../services/httpLoader';
 import { validateRequiredFields } from '../../../utils/formValidation';
 import mammoth from 'mammoth';
+import { useLoader } from '../../../context/LoaderContext';
 
 // ── Load pdf.js from CDN dynamically ─────────────────────────────────────
 const loadPdfJs = () =>
@@ -113,6 +113,7 @@ const US_COUNTRY_ID = '1';
 
 // ═════════════════════════════════════════════════════════════════════════
 const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
+  const { showAiLoader, hideAiLoader } = useLoader();
 
   const initialForm = {
     LOCATION_TYPE:            '',
@@ -290,6 +291,7 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
       return;
     }
     setExtracting(true);
+    showAiLoader({ mode: 'demand', title: 'AI JD Extraction' });
     try {
       const response = await extractJD(formData.JOB_DESCRIPTION);
       if (response.success) {
@@ -305,6 +307,7 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
     } catch {
       toast.error('Failed to connect to AI service.');
     } finally {
+      hideAiLoader();
       setExtracting(false);
     }
   };
@@ -629,7 +632,6 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
                   <span className="extract-hint"></span>
                 )}
               </div>
-              {extracting ? <AiLoader mode="demand" /> : null}
 
               {/* ── AI Extraction ── */}
               <div className="form-group">

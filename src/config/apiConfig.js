@@ -26,6 +26,7 @@ export const API_ENDPOINTS = Object.freeze({
   LOGIN: '/auth/login',
   ADD_PROFILE: '/addprofile/add',
   UPDATE_PROFILE: '/addprofile/update',
+  DELETE_PROFILE: '/addprofile/delete',
   DEMAND_DETAILS: '/demands_api/details',
   PROFILE_UPLOAD: '/addprofile/upload',
   PROFILE_VIEW: '/addprofile/view-profile',

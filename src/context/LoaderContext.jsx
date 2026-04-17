@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import AiLoader from '../components/common/AiLoader';
 import Loader from '../components/common/Loader';
 import LoaderStateContext from './LoaderStateContext';
 import { registerGlobalLoaderHandlers } from '../services/httpLoader';
@@ -12,6 +13,11 @@ const DEFAULT_OPTIONS = {
 export const LoaderProvider = ({ children }) => {
   const [activeRequests, setActiveRequests] = useState(0);
   const [loaderOptions, setLoaderOptions] = useState(DEFAULT_OPTIONS);
+  const [aiLoaderState, setAiLoaderState] = useState({
+    isVisible: false,
+    mode: 'demand',
+    title: '',
+  });
 
   const showLoader = useCallback((options = {}) => {
     setLoaderOptions((previous) => ({
@@ -23,6 +29,21 @@ export const LoaderProvider = ({ children }) => {
 
   const hideLoader = useCallback(() => {
     setActiveRequests((previous) => Math.max(0, previous - 1));
+  }, []);
+
+  const showAiLoader = useCallback((options = {}) => {
+    setAiLoaderState({
+      isVisible: true,
+      mode: options.mode || 'demand',
+      title: options.title || '',
+    });
+  }, []);
+
+  const hideAiLoader = useCallback(() => {
+    setAiLoaderState((previous) => ({
+      ...previous,
+      isVisible: false,
+    }));
   }, []);
 
   useEffect(() => {
@@ -38,8 +59,11 @@ export const LoaderProvider = ({ children }) => {
       showLoader,
       hideLoader,
       activeRequests,
+      aiIsVisible: aiLoaderState.isVisible,
+      showAiLoader,
+      hideAiLoader,
     }),
-    [activeRequests, hideLoader, showLoader]
+    [activeRequests, aiLoaderState.isVisible, hideAiLoader, hideLoader, showAiLoader, showLoader]
   );
 
   return (
@@ -53,6 +77,25 @@ export const LoaderProvider = ({ children }) => {
           message={loaderOptions.message}
           suppressWhenGlobal={false}
         />
+      ) : null}
+      {aiLoaderState.isVisible ? (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 3100,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 24,
+            background: 'rgba(15, 23, 42, 0.38)',
+            backdropFilter: 'blur(6px)',
+          }}
+        >
+          <div style={{ width: 'min(720px, 100%)' }}>
+            <AiLoader mode={aiLoaderState.mode} title={aiLoaderState.title} />
+          </div>
+        </div>
       ) : null}
     </LoaderStateContext.Provider>
   );

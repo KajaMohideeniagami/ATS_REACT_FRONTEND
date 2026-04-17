@@ -3,11 +3,11 @@ import axios from 'axios';
 import mammoth from 'mammoth';
 import { Upload, X, Zap } from 'lucide-react';
 import Loader from '../../common/Loader';
-import AiLoader from '../../common/AiLoader';
 import { API_BASE_URL, LOV_ENDPOINTS } from '../../../config/apiConfig';
 import { extractJD, getDemandDetails, updateDemand, uploadDemandFiles } from '../../../services/demandService';
 import { attachGlobalLoaderInterceptors } from '../../../services/httpLoader';
 import { toast } from '../../toast/index';
+import { useLoader } from '../../../context/LoaderContext';
 
 const api = axios.create({ baseURL: API_BASE_URL, timeout: 10000 });
 attachGlobalLoaderInterceptors(api);
@@ -108,6 +108,7 @@ const Field = ({ label, error, children }) => (
 );
 
 const EditDemandModal = ({ isOpen, onClose, onSuccess, customerId, demandId }) => {
+  const { showAiLoader, hideAiLoader } = useLoader();
   const [formData, setFormData] = useState(initialForm);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -249,6 +250,7 @@ const EditDemandModal = ({ isOpen, onClose, onSuccess, customerId, demandId }) =
   const handleExtract = async () => {
     if (!formData.JOB_DESCRIPTION.trim()) return toast.error('Please enter or upload a Job Description first.');
     setExtracting(true);
+    showAiLoader({ mode: 'demand', title: 'AI JD Extraction' });
     try {
       const response = await extractJD(formData.JOB_DESCRIPTION);
       if (!response.success) return toast.error(response.message || 'Extraction failed.');
@@ -261,6 +263,7 @@ const EditDemandModal = ({ isOpen, onClose, onSuccess, customerId, demandId }) =
     } catch {
       toast.error('Failed to connect to AI service.');
     } finally {
+      hideAiLoader();
       setExtracting(false);
     }
   };
@@ -391,7 +394,6 @@ const EditDemandModal = ({ isOpen, onClose, onSuccess, customerId, demandId }) =
                 <Field label="Attached Job Description"><input className="form-input edm-readonly-file" readOnly value={existingJd || ''} /></Field>
               </div>
               <div className="form-group"><button type="button" className="btn-ai" onClick={handleExtract} disabled={extracting || !formData.JOB_DESCRIPTION.trim()}><Zap size={14} />{extracting ? 'Analyzing...' : 'Analyze'}</button></div>
-              {extracting ? <AiLoader mode="demand" /> : null}
               <Field label="AI Extraction"><textarea name="AI_EXTRACTION" className="form-textarea" value={formData.AI_EXTRACTION} onChange={handleChange} rows="4" /></Field>
               <div className="edm-score-section">
                 <h4 className="edm-score-title">Profile Score Configuration</h4>
