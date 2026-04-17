@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
-import { login, saveSession, isLoggedIn } from '../../../services/authService';
+import { getSession, login, saveSession, isLoggedIn } from '../../../services/authService';
 import '../../../global.css';
 
 const LoginPage = () => {
@@ -13,7 +13,10 @@ const LoginPage = () => {
   const [showPass, setShowPass] = useState(false);
 
   useEffect(() => {
-    if (isLoggedIn()) navigate('/', { replace: true });
+    if (isLoggedIn()) {
+      const session = getSession();
+      navigate(session?.must_change_password ? '/change-password' : '/', { replace: true });
+    }
   }, [navigate]);
 
   const handleChange = (e) => {
@@ -43,8 +46,17 @@ const LoginPage = () => {
           username: response.username,
           full_name: response.full_name,
           email: response.email,
+          token: response.token,
+          must_change_password: Boolean(
+            response.must_change_password ?? response.change_password_on_first_use
+          ),
         });
-        navigate('/', { replace: true });
+        navigate(
+          response.must_change_password || response.change_password_on_first_use
+            ? '/change-password'
+            : '/',
+          { replace: true }
+        );
       } else {
         setErrors({ general: response.message || 'Invalid username or password.' });
       }

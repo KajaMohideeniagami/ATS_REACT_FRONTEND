@@ -17,6 +17,7 @@ import CustomerList from './components/pages/Customer/CustomerList';
 import CustomerDetail from './components/pages/Customer/CustomerDetail';
 import CustomerCreate from './components/pages/Customer/CustomerCreate';
 import LoginPage from './components/pages/Auth/LoginPage';
+import ChangePasswordPage from './components/pages/Auth/ChangePasswordPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { isLoggedIn, clearSession, getSession } from './services/authService';
 import ProfileStatusModal from './components/pages/ProfileStatus/ProfileStatus';
@@ -237,6 +238,14 @@ const App = () => {
       <Router>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route
+            path="/change-password"
+            element={
+              <ProtectedRoute>
+                <ChangePasswordPage />
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path="/dashboard"

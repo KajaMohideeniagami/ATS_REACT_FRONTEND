@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, KeyRound, LockKeyhole, Mail, ShieldCheck, User, UserRound } from 'lucide-react';
-import { getSession } from '../../../services/authService';
+import { getSession, saveSession } from '../../../services/authService';
 import { resetPassword } from '../../../services/userProfileService';
 import { toast } from '../../toast/index';
 
 const UserProfilePage = () => {
+  const navigate = useNavigate();
   const sessionUser = getSession();
 
   const [form, setForm] = useState({
@@ -46,6 +48,14 @@ const UserProfilePage = () => {
       const username = sessionUser?.username || sessionUser?.email;
       await resetPassword(username, form.old_password, form.new_password);
       toast.success('Password updated successfully!');
+      if (sessionUser?.must_change_password) {
+        saveSession({
+          ...sessionUser,
+          must_change_password: false,
+        });
+        navigate('/', { replace: true });
+        return;
+      }
       setForm({ old_password: '', new_password: '', confirm_password: '' });
     } catch (err) {
       const msg = err?.response?.data?.message || 'Failed to update password';
