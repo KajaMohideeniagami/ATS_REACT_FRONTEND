@@ -113,6 +113,7 @@ const buildProfileReportParams = ({ vendor, customer, demandStatus, demandType }
   }
 
   if (customer && customer !== 'All') {
+    params.customer_id = customer;
     params.customer = customer;
   }
 

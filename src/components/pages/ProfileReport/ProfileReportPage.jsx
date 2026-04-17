@@ -84,6 +84,40 @@ const matchesSearch = (row, searchTerm) => {
   return haystack.includes(searchTerm.trim().toLowerCase());
 };
 
+const matchesSelectedFilters = (row, { customer, vendor, demandStatus, demandType }) => {
+  if (!row) return false;
+
+  if (customer && customer !== 'All') {
+    const rowCustomerId = String(getValue(row, ['customer_id', 'customerId']));
+    if (rowCustomerId !== String(customer)) {
+      return false;
+    }
+  }
+
+  if (vendor && vendor !== 'All') {
+    const rowVendorId = String(getValue(row, ['vendor_id', 'vendorId']));
+    if (rowVendorId !== String(vendor)) {
+      return false;
+    }
+  }
+
+  if (demandStatus && demandStatus !== 'All') {
+    const rowStatus = normalize(getValue(row, ['demand_status', 'demandStatus']));
+    if (rowStatus !== normalize(demandStatus)) {
+      return false;
+    }
+  }
+
+  if (demandType && demandType !== 'All') {
+    const rowType = normalize(getValue(row, ['demand_type', 'demandType']));
+    if (rowType !== normalize(demandType)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
 const getStatusTone = (value) => {
   const normalized = normalize(value);
 
@@ -260,8 +294,17 @@ const ProfileReportPage = () => {
   }, [loadRows]);
 
   const filteredRows = useMemo(
-    () => rows.filter((row) => matchesSearch(row, searchTerm)),
-    [rows, searchTerm]
+    () =>
+      rows.filter(
+        (row) =>
+          matchesSelectedFilters(row, {
+            customer: selectedCustomer,
+            vendor: selectedVendor,
+            demandStatus: selectedStatus,
+            demandType: selectedType,
+          }) && matchesSearch(row, searchTerm)
+      ),
+    [rows, searchTerm, selectedCustomer, selectedVendor, selectedStatus, selectedType]
   );
 
   const columns = useMemo(
