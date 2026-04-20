@@ -323,8 +323,8 @@ const CustomerCreate = () => {
   }
 
   return (
-    <div className="customer-list-container">
-      <div className="form-container">
+    <div className="customer-list-container customer-create-page">
+      <div className="form-container customer-create-form">
           <div className="form-header">
           <h2 className="ats-heading-2">{isEditMode ? 'Edit Customer' : 'Create New Customer'}</h2>
           <div className="form-header-actions">

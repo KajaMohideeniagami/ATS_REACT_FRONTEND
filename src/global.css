@@ -2099,6 +2099,49 @@ a:hover {
   font-size: 14px;
 }
 
+.customer-create-form .form-group {
+  margin-bottom: 12px;
+}
+
+.customer-create-form .form-label {
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.customer-create-form .form-input,
+.customer-create-form .form-select {
+  min-height: 32px;
+  padding: 5px 10px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
+.customer-create-form .form-textarea {
+  min-height: 64px;
+  padding: 8px 10px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
+.customer-create-form .form-header {
+  margin-bottom: 20px;
+}
+
+.customer-create-form .form-row {
+  gap: 16px;
+}
+
+.vm-field {
+  gap: 4px;
+}
+
+.vm-input {
+  min-height: 32px;
+  padding: 5px 10px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
 .vm-modal-actions {
   grid-column: 1 / -1;
   display: flex;
