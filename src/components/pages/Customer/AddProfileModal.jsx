@@ -1409,12 +1409,13 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
         .dm-full-span {
           grid-column: 1 / -1;
         }
-        .form-group { display: flex; flex-direction: column; gap: 4px; }
-        .form-label { font-size: 13px; font-weight: 500; color: var(--ats-primary); }
+        .form-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+        .form-label { font-size: 12px; font-weight: 500; color: var(--ats-primary); }
         .form-input, .form-select, .form-textarea {
-          width: 100%; padding: 8px 12px;
+          width: 100%; padding: 5px 10px;
+          min-height: 32px;
           border: 1px solid var(--ats-border); border-radius: 8px;
-          font-size: 14px; color: var(--ats-neutral);
+          font-size: 12px; color: var(--ats-neutral);
           background: #fff;
           transition: border-color 0.15s ease, box-shadow 0.15s ease;
           box-sizing: border-box;
@@ -1424,7 +1425,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
           outline: none; border-color: var(--ats-primary);
           box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
         }
-        .form-textarea { resize: vertical; min-height: 80px; }
+        .form-textarea { resize: vertical; min-height: 64px; padding: 8px 10px; }
         .input-error { border-color: #ef4444 !important; }
         .form-error { font-size: 11px; color: #ef4444; margin-top: 2px; }
         .form-hint { font-size: 11px; color: var(--ats-secondary); margin-top: 6px; }

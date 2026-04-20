@@ -813,6 +813,26 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
           border-top: 1px solid var(--ats-border);
           flex-shrink: 0;
         }
+        .dm-modal .form-label {
+          font-size: 12px;
+          margin-bottom: 2px;
+        }
+        .dm-modal .form-input,
+        .dm-modal .form-select {
+          min-height: 32px;
+          padding: 5px 10px;
+          font-size: 12px;
+          border-radius: 8px;
+        }
+        .dm-modal .form-textarea {
+          min-height: 64px;
+          padding: 8px 10px;
+          font-size: 12px;
+          border-radius: 8px;
+        }
+        .dm-modal .form-group {
+          margin-bottom: 12px;
+        }
         .dm-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 0; }
         .dm-inline-field { max-width: 220px; }
         .dm-score-section {

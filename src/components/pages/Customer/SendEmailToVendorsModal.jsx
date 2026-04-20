@@ -800,6 +800,26 @@ const SendEmailToVendorsModal = ({ isOpen, onClose, onSuccess, customerId, deman
         .sev-grid-upto-billable .form-group {
           margin-bottom: 20px;
         }
+        .sev-modal .form-group {
+          margin-bottom: 12px;
+          gap: 4px;
+        }
+        .sev-modal .form-label {
+          font-size: 12px;
+        }
+        .sev-modal .form-input,
+        .sev-modal .form-select {
+          min-height: 32px;
+          padding: 5px 10px;
+          font-size: 12px;
+          border-radius: 8px;
+        }
+        .sev-modal .form-textarea {
+          min-height: 64px;
+          padding: 8px 10px;
+          font-size: 12px;
+          border-radius: 8px;
+        }
         .sev-readonly {
           background: #f8fafc;
           color: #64748b;
@@ -814,17 +834,18 @@ const SendEmailToVendorsModal = ({ isOpen, onClose, onSuccess, customerId, deman
         }
         .sev-select-trigger {
           width: 100%;
-          min-height: 48px;
+          min-height: 32px;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 12px;
-          padding: 12px 14px;
+          gap: 10px;
+          padding: 5px 10px;
           background: #ffffff;
           border: 2px solid var(--ats-border);
           border-radius: 8px;
           cursor: pointer;
           transition: var(--ats-transition);
+          font-size: 12px;
         }
         .sev-select.open .sev-select-trigger {
           border-color: var(--ats-primary);
@@ -885,7 +906,7 @@ const SendEmailToVendorsModal = ({ isOpen, onClose, onSuccess, customerId, deman
           display: flex;
           align-items: center;
           gap: 8px;
-          padding: 12px 14px;
+          padding: 8px 10px;
           border-bottom: 1px solid var(--ats-border);
           color: var(--ats-secondary);
         }
@@ -894,6 +915,7 @@ const SendEmailToVendorsModal = ({ isOpen, onClose, onSuccess, customerId, deman
           border: none;
           outline: none;
           font: inherit;
+          font-size: 12px;
           color: var(--ats-neutral);
           background: transparent;
         }
@@ -909,8 +931,9 @@ const SendEmailToVendorsModal = ({ isOpen, onClose, onSuccess, customerId, deman
           border: none;
           background: transparent;
           border-radius: 8px;
-          padding: 10px 12px;
+          padding: 8px 10px;
           font: inherit;
+          font-size: 12px;
         }
         .sev-select-option {
           cursor: pointer;
@@ -938,8 +961,9 @@ const SendEmailToVendorsModal = ({ isOpen, onClose, onSuccess, customerId, deman
           background: #ffffff;
           color: var(--ats-primary);
           border-radius: 8px;
-          padding: 10px 14px;
+          padding: 8px 12px;
           font: inherit;
+          font-size: 12px;
           font-weight: 500;
           cursor: pointer;
           transition: var(--ats-transition);
@@ -980,7 +1004,7 @@ const SendEmailToVendorsModal = ({ isOpen, onClose, onSuccess, customerId, deman
           align-items: center;
           gap: 8px;
           color: var(--ats-neutral);
-          font-size: 14px;
+          font-size: 12px;
         }
         .sev-checkbox input {
           width: 16px;
@@ -998,11 +1022,12 @@ const SendEmailToVendorsModal = ({ isOpen, onClose, onSuccess, customerId, deman
           gap: 8px;
           border: none;
           border-radius: 8px;
-          padding: 12px 20px;
+          padding: 8px 14px;
           color: #ffffff;
           background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
           box-shadow: 0 8px 18px rgba(37, 99, 235, 0.24);
           font: inherit;
+          font-size: 12px;
           font-weight: 600;
           cursor: pointer;
           transition: transform 0.15s ease, box-shadow 0.15s ease;

@@ -452,22 +452,22 @@ const EditDemandModal = ({ isOpen, onClose, onSuccess, customerId, demandId }) =
         .edm-close { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: none; border: none; border-radius: 8px; color: var(--ats-secondary); cursor: pointer; }
         .edm-close:hover { background: var(--ats-bg-accent); color: var(--ats-primary); }
         .edm-body { padding: 20px 24px; overflow-y: auto; overflow-x: hidden; flex: 1; }
-        .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
-        .form-label { font-size: 14px; font-weight: 600; color: var(--ats-neutral); }
+        .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+        .form-label { font-size: 12px; font-weight: 600; color: var(--ats-neutral); }
         .form-input, .form-select, .form-textarea {
           width: 100%;
-          min-height: 44px;
+          min-height: 32px;
           border: 1px solid var(--ats-border);
-          border-radius: 10px;
+          border-radius: 8px;
           background: #fff;
           color: var(--ats-primary);
-          padding: 10px 14px;
-          font-size: 14px;
+          padding: 5px 10px;
+          font-size: 12px;
           outline: none;
           transition: border-color 0.2s ease, box-shadow 0.2s ease;
           box-sizing: border-box;
         }
-        .form-textarea { min-height: 120px; resize: vertical; }
+        .form-textarea { min-height: 64px; resize: vertical; padding: 8px 10px; }
         .form-input:focus, .form-select:focus, .form-textarea:focus {
           border-color: #2563eb;
           box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
