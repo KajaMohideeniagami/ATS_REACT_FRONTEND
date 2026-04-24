@@ -7,6 +7,7 @@ import { API_BASE_URL, API_ENDPOINTS, LOV_ENDPOINTS } from "../../../config/apiC
 import { getDemandDetails } from "../../../services/demandService";
 import { analyzeProfile, parseResumeProfile } from "../../../services/profileAiService";
 import { getProfileView } from "../../../services/profileViewService";
+import { getProfileReportRows } from "../../../services/profileReportService";
 import { validateRequiredFields } from "../../../utils/formValidation";
 import mammoth from "mammoth";
 import { useLoader } from "../../../context/LoaderContext";
@@ -161,6 +162,19 @@ const normalizeForMatch = (value) =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+
+const normalizePhoneForMatch = (value) =>
+  String(value ?? "").replace(/\D+/g, "").trim();
+
+const getRowValue = (row, keys) => {
+  for (const key of keys) {
+    const value = row?.[key];
+    if (value !== undefined && value !== null && value !== "") {
+      return value;
+    }
+  }
+  return "";
+};
 
 const firstMatch = (text, patterns) => {
   for (const pattern of patterns) {
@@ -775,7 +789,6 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
         CURRENT_SALARY_PA: formData.CURRENT_SALARY_PA,
         EXPECTED_SALARY_PA: formData.EXPECTED_SALARY_PA,
         PROFILE_AVAILABILITY: formData.PROFILE_AVAILABILITY,
-        TAX_TERMS: formData.TAX_TERMS,
       },
       { toastKey: 'add-profile-form', formId: 'add-profile-form' }
     );
@@ -799,7 +812,6 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
     if (e.CURRENT_SALARY_PA) e.CURRENT_SALARY_PA = "Required";
     if (e.EXPECTED_SALARY_PA) e.EXPECTED_SALARY_PA = "Required";
     if (e.PROFILE_AVAILABILITY) e.PROFILE_AVAILABILITY = "Required";
-    if (e.TAX_TERMS) e.TAX_TERMS = "Required";
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -815,9 +827,67 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
     }
 
     const isEdit = Boolean(editProfile?.profile_id);
+    const demandFilterCustomerId =
+      customerId
+      || selectedDemandInfo?.customer_id
+      || selectedDemandInfo?.CUSTOMER_ID
+      || editProfile?.customer_id
+      || editProfile?.CUSTOMER_ID
+      || "";
+
+    const normalizedCandidateName = normalizeForMatch(formData.PROFILE_NAME);
+    const normalizedEmail = normalizeForMatch(formData.PROFILE_EMAIL);
+    const normalizedPhone = normalizePhoneForMatch(formData.PROFILE_CONTACT_NO);
+    const normalizedFileName = normalizeForMatch(selectedFile?.name || formData.FILE_NAME);
+
     let createdProfileId = null;
     setLoading(true);
     try {
+      const existingRows = await getProfileReportRows(
+        demandFilterCustomerId ? { customer: demandFilterCustomerId } : {}
+      );
+
+      const demandRows = (Array.isArray(existingRows) ? existingRows : []).filter((row) => {
+        const rowDemandId = getRowValue(row, ["demand_id", "DEMAND_ID", "demandId"]);
+        const rowProfileId = getRowValue(row, ["profile_id", "PROFILE_ID", "profileId"]);
+
+        if (String(rowDemandId) !== String(selectedDemandId)) {
+          return false;
+        }
+
+        if (isEdit && String(rowProfileId) === String(editProfile.profile_id)) {
+          return false;
+        }
+
+        return true;
+      });
+
+      const duplicateChecks = {
+        name: demandRows.some((row) => normalizeForMatch(getRowValue(row, ["profile_name", "PROFILE_NAME", "profileName"])) === normalizedCandidateName),
+        email: normalizedEmail
+          ? demandRows.some((row) => normalizeForMatch(getRowValue(row, ["profile_email", "PROFILE_EMAIL", "profileEmail"])) === normalizedEmail)
+          : false,
+        phone: normalizedPhone
+          ? demandRows.some((row) => normalizePhoneForMatch(getRowValue(row, ["profile_contact_no", "PROFILE_CONTACT_NO", "profileContactNo", "contact_no"])) === normalizedPhone)
+          : false,
+        fileName: normalizedFileName
+          ? demandRows.some((row) => normalizeForMatch(getRowValue(row, ["file_name", "FILE_NAME", "fileName"])) === normalizedFileName)
+          : false,
+      };
+
+      const duplicateFields = [];
+      if (duplicateChecks.name) duplicateFields.push("candidate name");
+      if (duplicateChecks.phone) duplicateFields.push("phone number");
+      if (duplicateChecks.email) duplicateFields.push("email ID");
+      if (duplicateChecks.fileName) duplicateFields.push("uploaded file name");
+
+      if (duplicateFields.length > 0) {
+        const duplicateMessage = `This profile already exists for the selected demand based on ${duplicateFields.join(", ")}.`;
+        toast.error(duplicateMessage);
+        setLoading(false);
+        return;
+      }
+
       const payload = {
         DEMAND_ID:             Number(selectedDemandId),
         PROFILE_NAME:          formData.PROFILE_NAME.trim(),
@@ -1004,6 +1074,50 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
               </>
             )}
 
+            {/* â”€â”€ Resume Upload â”€â”€ */}
+            <p className="dm-section-label">Resume</p>
+            <div className="dm-row">
+              <div
+                className="dm-upload-zone"
+                onClick={() => fileInputRef.current?.click()}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  style={{ display: "none" }}
+                  onChange={handleFileChange}
+                />
+                {profileParsing ? (
+                  <span className="dm-upload-hint">Extracting and pre-filling...</span>
+                ) : uploadingFile ? (
+                  <span className="dm-upload-hint">Uploading...</span>
+                ) : selectedFileName ? (
+                  <span className="dm-upload-selected">
+                    <FileText size={16} /> {selectedFileName}
+                  </span>
+                ) : (
+                  <>
+                    <Upload size={20} className="dm-upload-icon" />
+                    <span className="dm-upload-hint">Click to upload PDF or DOCX</span>
+                  </>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Attached File</label>
+                <input
+                  className="form-input"
+                  value={formData.FILE_NAME || "-"}
+                  readOnly
+                  style={{ background: "#f1f5f9", color: "#64748b", cursor: "default" }}
+                />
+              </div>
+            </div>
+
             {/* ── Basic Info ── */}
             <p className="dm-section-label">Basic Information</p>
             <div className="dm-row">
@@ -1125,7 +1239,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
                   {currencies.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                 </select>
               </Field>
-              <Field label="Tax Terms" required error={errors.TAX_TERMS}>
+              <Field label="Tax Terms" error={errors.TAX_TERMS}>
                 <select
                   name="TAX_TERMS"
                   className={`form-select${errors.TAX_TERMS ? " input-error" : ""}`}
@@ -1220,51 +1334,6 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
               <div />
             </div>
 
-            {/* ── Resume Upload ── */}
-            <p className="dm-section-label">Resume</p>
-            <div className="dm-row">
-              <div
-                className="dm-upload-zone"
-                onClick={() => fileInputRef.current?.click()}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  style={{ display: "none" }}
-                  onChange={handleFileChange}
-                />
-                {profileParsing ? (
-                  <span className="dm-upload-hint">Extracting and pre-filling...</span>
-                ) : uploadingFile ? (
-                  <span className="dm-upload-hint">Uploading...</span>
-                ) : selectedFileName ? (
-                  <span className="dm-upload-selected">
-                    <FileText size={16} /> {selectedFileName}
-                  </span>
-                ) : (
-                  <>
-                    <Upload size={20} className="dm-upload-icon" />
-                    <span className="dm-upload-hint">Click to upload PDF or DOCX</span>
-                  </>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Attached File</label>
-                <input
-                  className="form-input"
-                  value={formData.FILE_NAME || "-"}
-                  readOnly
-                  style={{ background: "#f1f5f9", color: "#64748b", cursor: "default" }}
-                />
-              </div>
-            </div>
-
-            {/* ── Profile Analysis ── */}
             <p className="dm-section-label">Profile Analysis</p>
             <div className="dm-row">
               <div className="form-group">
@@ -1505,6 +1574,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
 };
 
 export default AddProfileModal;
+
 
 
 

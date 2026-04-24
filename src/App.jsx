@@ -31,13 +31,52 @@ import CandidateReportPage from './components/pages/CandidateReport/CandidateRep
 import VendorMasterPage from './components/pages/VendorMaster/VendorMasterPage';
 import { LoaderProvider } from './context/LoaderContext';
 import UserProfilePage from './components/pages/UserProfile/UserProfilePage';
-import { UserCircle } from 'lucide-react';
+import CandidateDatabasePage from './components/pages/CandidateDatabase/CandidateDatabasePage';
+import CandidateDetailPage from './components/pages/CandidateDatabase/CandidateDetailPage';
 import './global.css';
+
+const APP_TITLE_SUFFIX = 'iAgami ATS';
+
+const formatPageTitle = (pageName) => `${pageName} | ${APP_TITLE_SUFFIX}`;
+
+const resolvePageTitle = (pathname) => {
+  if (pathname === '/login') return formatPageTitle('Login');
+  if (pathname === '/change-password') return formatPageTitle('Change Password');
+  if (pathname === '/dashboard') return formatPageTitle('Dashboard');
+  if (pathname === '/executive-dashboard') return formatPageTitle('Executive Dashboard');
+  if (pathname === '/') return formatPageTitle('Customer');
+  if (pathname === '/customers/create') return formatPageTitle('Customer Management');
+  if (/^\/customers\/[^/]+\/edit$/.test(pathname)) return formatPageTitle('Customer Management');
+  if (/^\/customers\/[^/]+\/profile-status$/.test(pathname)) return formatPageTitle('Profile Status');
+  if (/^\/customers\/[^/]+$/.test(pathname)) return formatPageTitle('Customer Management');
+  if (pathname === '/candidate-database') return formatPageTitle('Candidate Database');
+  if (/^\/candidate-database\/[^/]+$/.test(pathname)) return formatPageTitle('Candidate');
+  if (pathname === '/profile-report') return formatPageTitle('Profile Report');
+  if (pathname === '/demand-report') return formatPageTitle('Demand Report');
+  if (pathname === '/vendor-report') return formatPageTitle('Vendor Report');
+  if (pathname === '/vendor-master') return formatPageTitle('Vendor Management');
+  if (pathname === '/candidate-report/onboarded') return formatPageTitle('Candidate Report');
+  if (pathname === '/candidate-report/onboarded-failed') return formatPageTitle('Candidate Report');
+  if (pathname === '/candidate-report/customer-rejected') return formatPageTitle('Candidate Report');
+  if (pathname === '/profile') return formatPageTitle('My Profile');
+  return formatPageTitle('iAgami ATS');
+};
+
+const PageTitleManager = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    document.title = resolvePageTitle(location.pathname);
+  }, [location.pathname]);
+
+  return null;
+};
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
   { label: 'Executive Dashboard', icon: BarChart3, path: '/executive-dashboard' },
   { label: 'Customer', icon: Users, path: '/' },
+  { label: 'Candidate Database', icon: UserSearch, path: '/candidate-database' },
   { label: 'Profile Report', icon: UserSearch, path: '/profile-report' },
   { label: 'Demand Report Data', icon: BriefcaseBusiness, path: '/demand-report' },
   { label: 'Vendor Report Data', icon: BriefcaseBusiness, path: '/vendor-report' },
@@ -236,6 +275,7 @@ const App = () => {
     <LoaderProvider>
       <ToastProvider>
       <Router>
+        <PageTitleManager />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route
@@ -330,6 +370,28 @@ const App = () => {
               <ProtectedRoute>
                 <AppShell>
                   <DemandReportPage />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/candidate-database"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <CandidateDatabasePage />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/candidate-database/:profileId"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <CandidateDetailPage />
                 </AppShell>
               </ProtectedRoute>
             }
