@@ -8,6 +8,7 @@ import { extractJD, getDemandDetails, updateDemand, uploadDemandFiles } from '..
 import { attachGlobalLoaderInterceptors } from '../../../services/httpLoader';
 import { toast } from '../../toast/index';
 import { useLoader } from '../../../context/LoaderContext';
+import { getCurrentAuditUser } from '../../../services/authService';
 
 const api = axios.create({ baseURL: API_BASE_URL, timeout: 10000 });
 attachGlobalLoaderInterceptors(api);
@@ -289,6 +290,7 @@ const EditDemandModal = ({ isOpen, onClose, onSuccess, customerId, demandId }) =
     if (!validate()) return;
     setLoading(true);
     try {
+      const auditUser = getCurrentAuditUser();
       const payload = {
         demand_id: demandId,
         customer_id: customerId,
@@ -322,11 +324,12 @@ const EditDemandModal = ({ isOpen, onClose, onSuccess, customerId, demandId }) =
         assigned_to: formData.ASSIGNED_TO.trim(),
         no_of_lost_position: formData.NO_OF_LOST_POSITION || 0,
         demand_status: formData.STATUS_LOST ? 'Lost' : formData.STATUS_HOLD ? 'Hold' : 'Open',
+        updated_by: auditUser || null,
       };
       const response = await updateDemand(payload);
       if (!response.success) return toast.error(response.message || 'Failed to update demand.');
-      if (jdFile) await uploadDemandFiles({ demand_id: demandId, jd_file_name: jdFile.name, jd_mime_type: jdFile.type || 'application/octet-stream', jd_file_base64: await fileToBase64(jdFile), job_description: formData.JOB_DESCRIPTION || null }).catch(() => toast.error('Demand updated but JD upload failed.'));
-      if (iqFile) await uploadDemandFiles({ demand_id: demandId, iq_file_name: iqFile.name, iq_mime_type: iqFile.type || 'application/octet-stream', iq_file_base64: await fileToBase64(iqFile) }).catch(() => toast.error('Demand updated but interview question upload failed.'));
+      if (jdFile) await uploadDemandFiles({ demand_id: demandId, jd_file_name: jdFile.name, jd_mime_type: jdFile.type || 'application/octet-stream', jd_file_base64: await fileToBase64(jdFile), job_description: formData.JOB_DESCRIPTION || null, updated_by: auditUser || null, uploaded_by: auditUser || null }).catch(() => toast.error('Demand updated but JD upload failed.'));
+      if (iqFile) await uploadDemandFiles({ demand_id: demandId, iq_file_name: iqFile.name, iq_mime_type: iqFile.type || 'application/octet-stream', iq_file_base64: await fileToBase64(iqFile), updated_by: auditUser || null, uploaded_by: auditUser || null }).catch(() => toast.error('Demand updated but interview question upload failed.'));
       toast.success('Demand updated successfully!');
       handleClose();
       onSuccess?.();

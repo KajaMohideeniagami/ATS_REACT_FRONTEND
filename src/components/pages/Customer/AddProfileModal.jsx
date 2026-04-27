@@ -11,6 +11,7 @@ import { getProfileReportRows } from "../../../services/profileReportService";
 import { validateRequiredFields } from "../../../utils/formValidation";
 import mammoth from "mammoth";
 import { useLoader } from "../../../context/LoaderContext";
+import { getCurrentAuditUser } from "../../../services/authService";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -843,6 +844,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
     let createdProfileId = null;
     setLoading(true);
     try {
+      const auditUser = getCurrentAuditUser();
       const existingRows = await getProfileReportRows(
         demandFilterCustomerId ? { customer: demandFilterCustomerId } : {}
       );
@@ -913,7 +915,11 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
         AI_PROFILE_SUMMARY:    formData.AI_PROFILE_SUMMARY || null,
         AI_PROFILE_MATCHING:   formData.AI_PROFILE_MATCHING || null,
         AI_PROFILE_SCORE:      formData.AI_PROFILE_SCORE || null,
+        UPDATED_BY:            auditUser || null,
       };
+      if (!isEdit) {
+        payload.CREATED_BY = auditUser || null;
+      }
       if (isEdit) {
         payload.PROFILE_ID = Number(editProfile.profile_id);
       }
@@ -946,7 +952,11 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
             profile_id: profileId,
             file_name: selectedFile.name,
             file_mime_type: selectedFile.type || 'application/octet-stream',
-            file_base64: cleanBase64  // 🔥 IMPORTANT FIX
+            file_base64: cleanBase64,  // 🔥 IMPORTANT FIX
+            updated_by: auditUser || null,
+            uploaded_by: auditUser || null,
+            UPDATED_BY: auditUser || null,
+            UPLOADED_BY: auditUser || null,
           }
         );
 

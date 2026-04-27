@@ -40,3 +40,13 @@ export const clearSession = () => {
 };
 
 export const isLoggedIn = () => getSession() !== null;
+
+export const getCurrentAuditUser = () => {
+  const sessionUser = getSession();
+  return (
+    sessionUser?.username ||
+    sessionUser?.full_name ||
+    sessionUser?.email ||
+    ''
+  );
+};

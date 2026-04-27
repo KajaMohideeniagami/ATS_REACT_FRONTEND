@@ -9,6 +9,7 @@ import { attachGlobalLoaderInterceptors } from '../../../services/httpLoader';
 import { validateRequiredFields } from '../../../utils/formValidation';
 import mammoth from 'mammoth';
 import { useLoader } from '../../../context/LoaderContext';
+import { getCurrentAuditUser } from '../../../services/authService';
 
 // ── Load pdf.js from CDN dynamically ─────────────────────────────────────
 const loadPdfJs = () =>
@@ -346,6 +347,7 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
 
     setLoading(true);
     try {
+      const auditUser = getCurrentAuditUser();
       const payload = {
         customer_id:             customerId,
         demand_type:             formData.LOCATION_TYPE,
@@ -377,6 +379,8 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
         des_status_id:           formData.DES_STATUS_ID           || null,
         assigned_to:             formData.ASSIGNED_TO.trim()      || null,
         demand_status:           'Open',
+        created_by:              auditUser || null,
+        updated_by:              auditUser || null,
       };
 
       const response = await addDemand(payload);
@@ -397,6 +401,8 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
             iq_file_name:   iqFile.name,
             iq_mime_type:   iqFile.type || 'application/octet-stream',
             iq_file_base64: await fileToBase64(iqFile),
+            updated_by:     auditUser || null,
+            uploaded_by:    auditUser || null,
           };
           const uploadResponse = await uploadDemandFiles(uploadPayload);
           if (uploadResponse.success) {
