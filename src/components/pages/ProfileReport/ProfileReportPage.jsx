@@ -24,6 +24,7 @@ const STATUS_OPTIONS = ['All', 'Open', 'Closed', 'Hold', 'Lost'];
 const TYPE_OPTIONS = ['All', 'Offshore', 'Onsite', 'NearShore'];
 const PAGE_SIZE = 10;
 const COLUMN_PREFS_KEY = 'ats_profile_report_column_prefs';
+const DEFAULT_HIDDEN_COLUMNS = ['file_name', 'customer_id', 'demand_id', 'profile_id', 'profile_status_id'];
 
 const getValue = (row, keys) => {
   for (const key of keys) {
@@ -187,22 +188,24 @@ const toCsvSafe = (value) => `"${formatCell(value).replace(/"/g, '""')}"`;
 
 const readColumnPrefs = () => {
   if (typeof window === 'undefined') {
-    return { order: [], hidden: [] };
+    return { order: [], hidden: DEFAULT_HIDDEN_COLUMNS };
   }
 
   try {
     const rawPrefs = window.localStorage.getItem(COLUMN_PREFS_KEY);
     if (!rawPrefs) {
-      return { order: [], hidden: [] };
+      return { order: [], hidden: DEFAULT_HIDDEN_COLUMNS };
     }
 
     const parsedPrefs = JSON.parse(rawPrefs);
     return {
       order: Array.isArray(parsedPrefs?.order) ? parsedPrefs.order : [],
-      hidden: Array.isArray(parsedPrefs?.hidden) ? parsedPrefs.hidden : [],
+      hidden: Array.isArray(parsedPrefs?.hidden)
+        ? [...new Set([...DEFAULT_HIDDEN_COLUMNS, ...parsedPrefs.hidden])]
+        : DEFAULT_HIDDEN_COLUMNS,
     };
   } catch {
-    return { order: [], hidden: [] };
+    return { order: [], hidden: DEFAULT_HIDDEN_COLUMNS };
   }
 };
 
@@ -334,7 +337,12 @@ const ProfileReportPage = () => {
   }, [columns]);
 
   useEffect(() => {
-    setHiddenColumns((previousHiddenColumns) => previousHiddenColumns.filter((column) => columns.includes(column)));
+    setHiddenColumns((previousHiddenColumns) => {
+      const retainedColumns = previousHiddenColumns.filter((column) => columns.includes(column));
+      const defaultHiddenColumns = DEFAULT_HIDDEN_COLUMNS.filter((column) => columns.includes(column));
+
+      return [...new Set([...defaultHiddenColumns, ...retainedColumns])];
+    });
   }, [columns]);
 
   useEffect(() => {
@@ -383,8 +391,9 @@ const ProfileReportPage = () => {
   };
 
   const showAllColumns = () => {
-    setHiddenColumns([]);
-    toast.success('All columns are now visible.');
+    const defaultHiddenColumns = DEFAULT_HIDDEN_COLUMNS.filter((column) => columns.includes(column));
+    setHiddenColumns(defaultHiddenColumns);
+    toast.success('All available report columns are now visible except the hidden system fields.');
   };
 
   const moveColumn = (sourceColumn, targetColumn) => {
@@ -439,7 +448,7 @@ const ProfileReportPage = () => {
   const handleResetView = () => {
     resetFilters();
     setColumnOrder(columns);
-    setHiddenColumns([]);
+    setHiddenColumns(DEFAULT_HIDDEN_COLUMNS.filter((column) => columns.includes(column)));
     setActionsOpen(false);
     setColumnsOpen(false);
     toast.success('Report view reset.');

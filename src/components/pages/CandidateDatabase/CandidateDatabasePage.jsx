@@ -302,8 +302,8 @@ const CandidateDatabasePage = () => {
                               <div className="candidate-inline-group">
                                 <div className="candidate-inline-group-title">Candidate Details</div>
                                 <div className="candidate-demand-inline-table-wrap">
-                                  <table className="candidate-detail-inline-table candidate-detail-inline-table-compact">
-                                    <tbody>
+                                  <table className="candidate-detail-inline-table candidate-detail-inline-table-single-row">
+                                    <thead>
                                       <tr>
                                         <th>Candidate Name</th>
                                         <th>Profile Code</th>
@@ -312,26 +312,23 @@ const CandidateDatabasePage = () => {
                                         <th>Preferred Location</th>
                                         <th>Customer</th>
                                         <th>Vendor</th>
-                                      </tr>
-                                      <tr>
-                                        <td className="candidate-detail-strong">{displayText(candidate.profile_name)}</td>
-                                        <td><EllipsisText value={candidate.profile_code} /></td>
-                                        <td><EllipsisText value={candidate.current_company} /></td>
-                                        <td><EllipsisText value={candidate.current_location} /></td>
-                                        <td><EllipsisText value={candidate.preferred_location} /></td>
-                                        <td><EllipsisText value={candidate.customer_name} /></td>
-                                        <td><EllipsisText value={candidate.vendor_name} /></td>
-                                      </tr>
-                                      <tr>
                                         <th>Profile Status</th>
                                         <th>Total Experience</th>
                                         <th>Availability</th>
                                         <th>Current Salary</th>
                                         <th>Expected Salary</th>
                                         <th>Match Score</th>
-                                        <th className="candidate-detail-empty-header" />
                                       </tr>
+                                    </thead>
+                                    <tbody>
                                       <tr>
+                                        <td className="candidate-detail-strong"><EllipsisText value={candidate.profile_name} /></td>
+                                        <td><EllipsisText value={candidate.profile_code} /></td>
+                                        <td><EllipsisText value={candidate.current_company} /></td>
+                                        <td><EllipsisText value={candidate.current_location} /></td>
+                                        <td><EllipsisText value={candidate.preferred_location} /></td>
+                                        <td><EllipsisText value={candidate.customer_name} /></td>
+                                        <td><EllipsisText value={candidate.vendor_name} /></td>
                                         <td><EllipsisText value={candidate.profile_status_name} /></td>
                                         <td className="candidate-detail-strong">{displayText(candidate.work_exp_in_years)}</td>
                                         <td>
@@ -346,7 +343,6 @@ const CandidateDatabasePage = () => {
                                             {displayText(candidate.match_score)}
                                           </span>
                                         </td>
-                                        <td className="candidate-detail-empty-cell" />
                                       </tr>
                                     </tbody>
                                   </table>

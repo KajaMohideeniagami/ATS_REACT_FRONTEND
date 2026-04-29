@@ -133,11 +133,16 @@ const ReportTable = ({ title, columns, rows, accentClass = '', loading = false, 
     </div>
 
     <div className="executive-report-table-wrap">
-      <table className="executive-report-table">
+      <table className="executive-report-table executive-analysis-table">
         <thead>
           <tr>
             {columns.map((column) => (
-              <th key={column.key}>{column.label}</th>
+              <th
+                key={column.key}
+                className={column.key === 'metric' ? 'executive-analysis-metric-column' : 'executive-analysis-value-column'}
+              >
+                {column.label}
+              </th>
             ))}
           </tr>
         </thead>
@@ -164,7 +169,10 @@ const ReportTable = ({ title, columns, rows, accentClass = '', loading = false, 
             rows.map((row, index) => (
               <tr key={`${title}-${index}`}>
                 {columns.map((column) => (
-                  <td key={column.key}>
+                  <td
+                    key={column.key}
+                    className={column.key === 'metric' ? 'executive-analysis-metric-column' : 'executive-analysis-value-column'}
+                  >
                     {column.render ? column.render(row[column.key], row) : row[column.key]}
                   </td>
                 ))}
@@ -1832,6 +1840,13 @@ const ExecutiveDashboardPage = () => {
         .executive-report-table th:first-child,
         .executive-report-table td:first-child {
           text-align: left;
+        }
+        .executive-analysis-table .executive-analysis-metric-column {
+          text-align: left !important;
+        }
+        .executive-analysis-table .executive-analysis-value-column {
+          text-align: right !important;
+          font-variant-numeric: tabular-nums;
         }
         .executive-report-empty {
           text-align: center !important;
