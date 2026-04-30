@@ -27,7 +27,7 @@ import {
   uploadProfileToMergeBucket,
 } from '../../../services/profileMergeService';
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 15;
 const SEARCH_STORAGE_KEY = 'candidateDatabase.searchTerm';
 const PAGE_STORAGE_KEY = 'candidateDatabase.page';
 const EXPANDED_PROFILE_STORAGE_KEY = 'candidateDatabase.expandedProfileId';
@@ -230,6 +230,7 @@ const CandidateDatabasePage = () => {
   const [demands, setDemands] = useState([]);
   const [searchTerm, setSearchTerm] = useState(() => getStoredValue(SEARCH_STORAGE_KEY));
   const [page, setPage] = useState(() => Number(getStoredValue(PAGE_STORAGE_KEY, '1')) || 1);
+  const [uploadedPage, setUploadedPage] = useState(1);
   const [expandedProfileId, setExpandedProfileId] = useState(() => getStoredValue(EXPANDED_PROFILE_STORAGE_KEY));
   const [activeTab, setActiveTab] = useState(() => getStoredValue(TAB_STORAGE_KEY, 'candidate') || 'candidate');
   const [selectedProfile, setSelectedProfile] = useState(null);
@@ -265,6 +266,7 @@ const CandidateDatabasePage = () => {
 
   useEffect(() => {
     setPage(1);
+    setUploadedPage(1);
   }, [searchTerm]);
 
   useEffect(() => {
@@ -306,6 +308,13 @@ const CandidateDatabasePage = () => {
   const pagedRows = filteredCandidateRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const startRow = filteredCandidateRows.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
   const endRow = Math.min(currentPage * PAGE_SIZE, filteredCandidateRows.length);
+
+  const uploadedTotalPages = Math.max(1, Math.ceil(filteredUploadedRows.length / PAGE_SIZE));
+  const currentUploadedPage = Math.min(uploadedPage, uploadedTotalPages);
+  const pagedUploadedRows = filteredUploadedRows.slice(
+    (currentUploadedPage - 1) * PAGE_SIZE,
+    currentUploadedPage * PAGE_SIZE
+  );
 
   useEffect(() => {
     if (pagedRows.length === 0) {
@@ -393,6 +402,7 @@ const CandidateDatabasePage = () => {
   const resetSearch = () => {
     setSearchTerm('');
     setPage(1);
+    setUploadedPage(1);
   };
 
   const toggleExpanded = (profileId) => {
@@ -575,7 +585,7 @@ const CandidateDatabasePage = () => {
                 </>
               ) : (
                 <>
-                  Showing <strong>{filteredUploadedRows.length}</strong> uploaded profiles pending merge
+                  Showing <strong>{filteredUploadedRows.length}</strong> uploaded profiles
                 </>
               )}
             </span>
@@ -599,7 +609,7 @@ const CandidateDatabasePage = () => {
               className={`candidate-database-tab ${activeTab === 'uploaded' ? 'active' : ''}`}
               onClick={() => setActiveTab('uploaded')}
             >
-              Uploaded Profiles Pending Merge
+              Uploaded Profiles
               <span className="candidate-database-tab-count">{filteredUploadedRows.length}</span>
             </button>
           </div>
@@ -620,11 +630,8 @@ const CandidateDatabasePage = () => {
                         <th aria-label="Expand row" />
                         <th>Candidate Name</th>
                         <th>Customer</th>
-                        <th>Location</th>
                         <th>Experience</th>
-                        <th>Availability</th>
                         <th>Linked Demands</th>
-                        <th>Match Score</th>
                         <th>Action</th>
                       </tr>
                     </thead>
@@ -658,19 +665,8 @@ const CandidateDatabasePage = () => {
                                 </div>
                               </td>
                               <td><EllipsisText value={candidate.customer_name} /></td>
-                              <td><EllipsisText value={candidate.current_location} /></td>
                               <td>{displayText(candidate.work_exp_in_years)}</td>
-                              <td>
-                                <span className={`candidate-pill candidate-pill-${getAvailabilityState(candidate.profile_availability)}`}>
-                                  {displayText(candidate.profile_availability)}
-                                </span>
-                              </td>
                               <td>{displayText(candidate.linked_demand_count || 1)}</td>
-                              <td>
-                                <span className={`candidate-pill candidate-pill-${getMatchScoreState(candidate.match_score)}`}>
-                                  {displayText(candidate.match_score)}
-                                </span>
-                              </td>
                               <td>
                                 <div className="profile-merge-action-cell">
                                   <button
@@ -700,7 +696,7 @@ const CandidateDatabasePage = () => {
                             </tr>
 
                             <tr className={`candidate-expanded-row ${isExpanded ? 'is-open' : ''}`}>
-                              <td colSpan="9" className="candidate-expanded-cell">
+                              <td colSpan="6" className="candidate-expanded-cell">
                                 <div className="candidate-expanded-content">
                                   <div className="candidate-inline-group">
                                     <div className="candidate-inline-group-title">Candidate Details</div>
@@ -818,7 +814,7 @@ const CandidateDatabasePage = () => {
             <div className="candidate-uploaded-section">
               {filteredUploadedRows.length === 0 ? (
                 <div className="candidate-database-empty candidate-uploaded-empty">
-                  No uploaded profiles pending merge.
+                  No uploaded profiles available.
                 </div>
               ) : (
                 <div className="profile-merge-table-wrap">
@@ -833,7 +829,7 @@ const CandidateDatabasePage = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredUploadedRows.map((row) => (
+                      {pagedUploadedRows.map((row) => (
                         <tr key={`uploaded-${row.id}`}>
                           <td>
                             <div className="profile-merge-name-cell">
@@ -862,6 +858,28 @@ const CandidateDatabasePage = () => {
                   </table>
                 </div>
               )}
+
+              {uploadedTotalPages > 1 ? (
+                <div className="candidate-database-pagination">
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    disabled={currentUploadedPage === 1}
+                    onClick={() => setUploadedPage((value) => value - 1)}
+                  >
+                    Previous
+                  </button>
+                  <span>Page {currentUploadedPage} of {uploadedTotalPages}</span>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    disabled={currentUploadedPage === uploadedTotalPages}
+                    onClick={() => setUploadedPage((value) => value + 1)}
+                  >
+                    Next
+                  </button>
+                </div>
+              ) : null}
             </div>
           )}
         </div>
