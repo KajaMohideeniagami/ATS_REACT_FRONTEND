@@ -125,6 +125,7 @@ const CustomerDetail = () => {
   const loadData = async () => {
     try {
       setLoading(true);
+      setError(null);
       const result = await getCustomerDetails(id);
       setData(result);
     } catch (err) {
@@ -142,6 +143,12 @@ const CustomerDetail = () => {
     setEmailsPage(1);
   }, [activeTab]);
 
+  useEffect(() => {
+    setDemandsPage(1);
+    setProfilesPage(1);
+    setEmailsPage(1);
+  }, [id]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -153,11 +160,32 @@ const CustomerDetail = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const customer = data?.customer      || {};
-  const contacts = data?.contacts      || [];
-  const demands  = data?.demands       || [];
-  const profiles = data?.profiles      || [];
-  const emails   = data?.vendor_emails || [];
+  const customer = data?.customer || {};
+  const contacts = Array.isArray(data?.contacts) ? data.contacts : [];
+  const demands = Array.isArray(data?.demands) ? data.demands : [];
+  const profiles = Array.isArray(data?.profiles) ? data.profiles : [];
+  const emails = Array.isArray(data?.vendor_emails) ? data.vendor_emails : [];
+
+  useEffect(() => {
+    const totalDemandPages = Math.max(1, Math.ceil(demands.length / PAGE_SIZE));
+    if (demandsPage > totalDemandPages) {
+      setDemandsPage(1);
+    }
+  }, [demands.length, demandsPage]);
+
+  useEffect(() => {
+    const totalProfilePages = Math.max(1, Math.ceil(profiles.length / PAGE_SIZE));
+    if (profilesPage > totalProfilePages) {
+      setProfilesPage(1);
+    }
+  }, [profiles.length, profilesPage]);
+
+  useEffect(() => {
+    const totalEmailPages = Math.max(1, Math.ceil(emails.length / PAGE_SIZE));
+    if (emailsPage > totalEmailPages) {
+      setEmailsPage(1);
+    }
+  }, [emails.length, emailsPage]);
 
   const demandsSlice  = paginate(demands,  demandsPage);
   const profilesSlice = paginate(profiles, profilesPage);
@@ -684,67 +712,83 @@ const CustomerDetail = () => {
       </div>
 
       {/* ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â ADD CONTACT MODAL ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â */}
-      <AddContactModal
-        isOpen={showAddContact}
-        onClose={() => { setShowAddContact(false); setEditingContact(null); }}
-        customerId={id}
-        onSuccess={loadData}
-        editContact={editingContact}
-      />
+      {showAddContact && (
+        <AddContactModal
+          isOpen={showAddContact}
+          onClose={() => { setShowAddContact(false); setEditingContact(null); }}
+          customerId={id}
+          onSuccess={loadData}
+          editContact={editingContact}
+        />
+      )}
 
-      <AddDemandModal
-      isOpen={showAddDemand}
-      onClose={() => setShowAddDemand(false)}
-      customerId={id}
-      onSuccess={loadData}
-      />
+      {showAddDemand && (
+        <AddDemandModal
+          isOpen={showAddDemand}
+          onClose={() => setShowAddDemand(false)}
+          customerId={id}
+          onSuccess={loadData}
+        />
+      )}
 
-      <AddProfileModal
-        isOpen={showAddProfile}
-        onClose={() => {
-          setShowAddProfile(false);
-          setEditingProfile(null);
-        }}
-        onSuccess={loadData}
-        demandId={selectedDemandId}
-        demandType={selectedDemandInfo?.demand_type}
-        demands={demands}
-        customerId={id}
-        editProfile={editingProfile}
-      />
-      <ViewProfileModal
-        isOpen={showViewProfile}
-        onClose={() => {
-          setShowViewProfile(false);
-          setViewProfileId(null);
-        }}
-        profileId={viewProfileId}
-      />
-      <ProfileStatusModal
-        customerId={id}
-        isOpen={showProfileStatus}
-        onClose={() => setShowProfileStatus(false)}
-      />
-      <SendEmailToVendorsModal
-        isOpen={showSendEmailToVendors}
-        onClose={() => setShowSendEmailToVendors(false)}
-        onSuccess={loadData}
-        customerId={id}
-        demands={demands}
-      />
-      <ViewDemandRequestModal
-        isOpen={Boolean(viewDemandId)}
-        onClose={() => setViewDemandId(null)}
-        customerId={id}
-        demandId={viewDemandId}
-      />
-      <EditDemandModal
-        isOpen={Boolean(editDemandId)}
-        onClose={() => setEditDemandId(null)}
-        onSuccess={loadData}
-        customerId={id}
-        demandId={editDemandId}
-      />
+      {showAddProfile && (
+        <AddProfileModal
+          isOpen={showAddProfile}
+          onClose={() => {
+            setShowAddProfile(false);
+            setEditingProfile(null);
+          }}
+          onSuccess={loadData}
+          demandId={selectedDemandId}
+          demandType={selectedDemandInfo?.demand_type}
+          demands={demands}
+          customerId={id}
+          editProfile={editingProfile}
+        />
+      )}
+      {showViewProfile && (
+        <ViewProfileModal
+          isOpen={showViewProfile}
+          onClose={() => {
+            setShowViewProfile(false);
+            setViewProfileId(null);
+          }}
+          profileId={viewProfileId}
+        />
+      )}
+      {showProfileStatus && (
+        <ProfileStatusModal
+          customerId={id}
+          isOpen={showProfileStatus}
+          onClose={() => setShowProfileStatus(false)}
+        />
+      )}
+      {showSendEmailToVendors && (
+        <SendEmailToVendorsModal
+          isOpen={showSendEmailToVendors}
+          onClose={() => setShowSendEmailToVendors(false)}
+          onSuccess={loadData}
+          customerId={id}
+          demands={demands}
+        />
+      )}
+      {Boolean(viewDemandId) && (
+        <ViewDemandRequestModal
+          isOpen={Boolean(viewDemandId)}
+          onClose={() => setViewDemandId(null)}
+          customerId={id}
+          demandId={viewDemandId}
+        />
+      )}
+      {Boolean(editDemandId) && (
+        <EditDemandModal
+          isOpen={Boolean(editDemandId)}
+          onClose={() => setEditDemandId(null)}
+          onSuccess={loadData}
+          customerId={id}
+          demandId={editDemandId}
+        />
+      )}
       {contactToDelete && (
         <>
           <div className="modal-backdrop" onClick={() => !deletingContact && setContactToDelete(null)} />

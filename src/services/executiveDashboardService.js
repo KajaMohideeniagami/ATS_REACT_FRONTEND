@@ -85,6 +85,14 @@ const normalizeDemandAgeingDetailRow = (row) => ({
   no_of_position: Number(row?.no_of_position ?? row?.NO_OF_POSITION ?? 0),
 });
 
+const normalizeMetricDrilldownRow = (row = {}) => ({
+  name: String(row?.name ?? row?.NAME ?? ''),
+  customer_name: String(row?.customer_name ?? row?.CUSTOMER_NAME ?? ''),
+  demand_source: String(row?.demand_source ?? row?.DEMAND_SOURCE ?? ''),
+  employment_type: String(row?.employment_type ?? row?.EMPLOYMENT_TYPE ?? ''),
+  onboarded_date: row?.onboarded_date ?? row?.ONBOARDED_DATE ?? null,
+});
+
 const normalizeTaPerformance = (row = {}) => ({
   profiles_sourced_current_month: Number(
     row?.profiles_sourced_current_month
@@ -329,6 +337,19 @@ export const getExecutiveDashboardDemandAgeingDetails = async (filters = {}, age
   });
 
   return extractList(response.data).map(normalizeDemandAgeingDetailRow);
+};
+
+export const getExecutiveDashboardMetricDrilldown = async (filters = {}, { metric, viewType } = {}) => {
+  const response = await executiveDashboardApi.get(API_ENDPOINTS.EXECUTIVE_DASHBOARD_METRIC_DRILLDOWN, {
+    params: {
+      ...buildParams(filters),
+      metric,
+      view_type: viewType,
+    },
+    ...EXECUTIVE_DASHBOARD_REQUEST_CONFIG,
+  });
+
+  return extractList(response.data).map(normalizeMetricDrilldownRow);
 };
 
 export const getExecutiveDashboardAnalysisData = async (filters = {}) => {

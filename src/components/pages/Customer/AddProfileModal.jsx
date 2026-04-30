@@ -378,7 +378,19 @@ const mapParsedResumeToForm = (parsed, lookups) => {
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
-const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, demands = [], customerId, editProfile = null }) => {
+const AddProfileModal = ({
+  isOpen,
+  onClose,
+  onSuccess,
+  demandId,
+  demandType,
+  demands = [],
+  customerId,
+  editProfile = null,
+  prefillProfile = null,
+  prefillFile = null,
+  lockDemandSelection = false,
+}) => {
   const { showAiLoader, hideAiLoader } = useLoader();
   const [formData,           setFormData]          = useState(initialForm);
   const [errors,             setErrors]            = useState({});
@@ -391,6 +403,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
   const [selectedDemandId,   setSelectedDemandId]  = useState(demandId ? String(demandId) : "");
   const [selectedDemandInfo, setSelectedDemandInfo]= useState(null);
   const [demandDetails,      setDemandDetails]     = useState(null);
+  const prefillHydratedRef = useRef("");
 
   const [workModes,          setWorkModes]         = useState([]);
   const [currencies,         setCurrencies]        = useState([]);
@@ -453,6 +466,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
     setSelectedDemandId(demandId ? String(demandId) : "");
     setSelectedDemandInfo(null);
     setDemandDetails(null);
+    prefillHydratedRef.current = "";
   }, [demandId]);
 
   const handleClose = useCallback(() => {
@@ -520,7 +534,33 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
       setSelectedDemandId(String(demandId));
       setSelectedDemandInfo(found);
     }
-  }, [isOpen, demandId, demands]);
+
+    if (!customerId) {
+      setDemandDetails(null);
+      return;
+    }
+
+    let isActive = true;
+
+    const loadPrefilledDemandDetails = async () => {
+      try {
+        const details = await getDemandDetails(customerId, demandId);
+        if (isActive) {
+          setDemandDetails(details);
+        }
+      } catch {
+        if (isActive) {
+          setDemandDetails(null);
+        }
+      }
+    };
+
+    loadPrefilledDemandDetails();
+
+    return () => {
+      isActive = false;
+    };
+  }, [isOpen, demandId, demands, customerId]);
 
   // Pre-fill form when editing
   useEffect(() => {
@@ -610,6 +650,55 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
 
   // ── Escape key ───────────────────────────────────────────────────────────
   useEffect(() => {
+    if (!isOpen || editProfile?.profile_id || !prefillProfile) return;
+
+    const demandValue = demandId || prefillProfile.demand_id || "";
+    const prefillKey = `${prefillProfile.id || prefillProfile.file_name || "prefill"}::${demandValue || "no-demand"}`;
+    if (prefillHydratedRef.current === prefillKey) return;
+    prefillHydratedRef.current = prefillKey;
+    const foundDemand = demands.find(d => String(d.demand_id) === String(demandValue));
+
+    if (demandValue) {
+      setSelectedDemandId(String(demandValue));
+    }
+    setSelectedDemandInfo(foundDemand || null);
+
+    setFormData((p) => ({
+      ...p,
+      PROFILE_NAME: prefillProfile.profile_name || "",
+      PROFILE_EMAIL: prefillProfile.profile_email || "",
+      PROFILE_CONTACT_NO: prefillProfile.profile_contact_no || "",
+      CURRENT_LOCATION: prefillProfile.current_location || "",
+      CURRENT_COMPANY: prefillProfile.current_company || "",
+      PREFERRED_LOCATION: prefillProfile.preferred_location || "",
+      WORK_EXP_IN_YEARS: prefillProfile.work_exp_in_years || "",
+      RELEVANT_EXP_IN_YEARS: prefillProfile.relevant_exp_in_years || "",
+      PROFILE_AVAILABILITY: prefillProfile.profile_availability || "Serving Notice",
+      CURRENT_SALARY_PA: prefillProfile.current_salary || "",
+      EXPECTED_SALARY_PA: prefillProfile.expected_salary || "",
+      FILE_NAME: prefillProfile.file_name || "",
+      PROFILE_URL: prefillProfile.profile_url || "",
+      NOTES: prefillProfile.notes || "Profile initiated from Profile Merge upload flow.",
+      AI_PROFILE_SUMMARY: "",
+      AI_PROFILE_MATCHING: "",
+      AI_PROFILE_SCORE: "",
+    }));
+
+    const hydratePrefill = async () => {
+      if (prefillFile) {
+        await processResumeFile(prefillFile, {
+          preserveProfileUrl: prefillProfile.profile_url || "",
+        });
+      } else {
+        setSelectedFile(null);
+        setSelectedFileName(prefillProfile.file_name || "");
+      }
+    };
+
+    hydratePrefill();
+  }, [isOpen, editProfile?.profile_id, prefillProfile, prefillFile, demandId, demands]);
+
+  useEffect(() => {
     const handleKey = (e) => { if (e.key === "Escape") handleClose(); };
     if (isOpen) document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
@@ -629,10 +718,10 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
   };
 
   // ── File selection ───────────────────────────────────────────────────────
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
+  async function processResumeFile(file, options = {}) {
     if (!file) return;
 
+    const { preserveProfileUrl = "" } = options;
     const ext = file.name.split('.').pop().toLowerCase();
     if (!['pdf', 'doc', 'docx'].includes(ext)) {
       toast.error('Only PDF, DOC, DOCX files allowed.');
@@ -641,46 +730,65 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
 
     setSelectedFile(file);
     setSelectedFileName(file.name);
+    setFormData((p) => ({
+      ...p,
+      FILE_NAME: file.name,
+      PROFILE_URL: preserveProfileUrl || p.PROFILE_URL || "",
+    }));
 
     setProfileParsing(true);
-    (async () => {
-      try {
-        let extractedText = "";
-        if (ext === "pdf") {
-          extractedText = await extractPDF(file);
-        } else if (ext === "docx") {
-          extractedText = await extractDOCX(file);
-        } else {
-          toast.error("DOC format not supported for extraction. Please use PDF or DOCX.");
-          return;
-        }
-
-        if (!extractedText.trim()) {
-          toast.error("No text could be extracted from the file.");
-          return;
-        }
-
-        applyParsedResumeData(parseResumeLocally(extractedText));
-
-        const parsedResume = await parseResumeProfile({ profileText: extractedText });
-        if (parsedResume.success && parsedResume.parsed) {
-          applyParsedResumeData(parsedResume.parsed);
-        }
-
-        setFormData((p) => ({
-          ...p,
-          PROFILE_EXTRACTION: extractedText,
-          AI_PROFILE_SUMMARY: "",
-          AI_PROFILE_MATCHING: "",
-          AI_PROFILE_SCORE: "",
-        }));
-      } catch (err) {
-        console.error("Profile extraction error:", err);
-        toast.error("Failed to extract text from resume.");
-      } finally {
-        setProfileParsing(false);
+    try {
+      let extractedText = "";
+      if (ext === "pdf") {
+        extractedText = await extractPDF(file);
+      } else if (ext === "docx") {
+        extractedText = await extractDOCX(file);
+      } else {
+        toast.error("DOC format not supported for extraction. Please use PDF or DOCX.");
+        return;
       }
-    })();
+
+      if (!extractedText.trim()) {
+        toast.error("No text could be extracted from the file.");
+        return;
+      }
+
+      let parserApplied = false;
+      try {
+        const parsedResponse = await parseResumeProfile({ profileText: extractedText });
+        if (parsedResponse?.success) {
+          applyParsedResumeData(parsedResponse);
+          parserApplied = true;
+        }
+      } catch (parseError) {
+        console.warn("Profile parsing API failed, falling back to local parsing.", parseError);
+      }
+
+      if (!parserApplied) {
+        applyParsedResumeData(parseResumeLocally(extractedText));
+      }
+
+      setFormData((p) => ({
+        ...p,
+        FILE_NAME: file.name,
+        PROFILE_URL: preserveProfileUrl || p.PROFILE_URL || "",
+        PROFILE_EXTRACTION: extractedText,
+        AI_PROFILE_SUMMARY: "",
+        AI_PROFILE_MATCHING: "",
+        AI_PROFILE_SCORE: "",
+      }));
+    } catch (err) {
+      console.error("Profile extraction error:", err);
+      toast.error("Failed to extract text from resume.");
+    } finally {
+      setProfileParsing(false);
+    }
+  }
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    processResumeFile(file);
   };
 
   const handleAnalyze = async () => {
@@ -1034,7 +1142,7 @@ const AddProfileModal = ({ isOpen, onClose, onSuccess, demandId, demandType, dem
                   className={`form-select${errors.DEMAND_ID ? " input-error" : ""}`}
                   value={selectedDemandId}
                   onChange={handleDemandChange}
-                  disabled={Boolean(editProfile?.profile_id)}
+                  disabled={Boolean(editProfile?.profile_id) || lockDemandSelection}
                 >
                   <option value="">Select demand</option>
                   {openDemands.map(d => (

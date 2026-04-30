@@ -4,12 +4,12 @@ import Loader from '../../common/Loader';
 import { toast } from '../../toast/index';
 import {
   getExecutiveDashboardCustomers,
+  getExecutiveDashboardData,
   getExecutiveDashboardDemandTypes,
   getExecutiveDashboardYears,
   getExecutiveDashboardAnalysisData,
   getExecutiveDashboardDemandAgeingDetails,
-  getExecutiveDashboardOpenDemandsData,
-  getExecutiveDashboardSummaryData,
+  getExecutiveDashboardMetricDrilldown,
   getExecutiveDashboardTaData,
 } from '../../../services/executiveDashboardService';
 import '../../../global.css';
@@ -17,6 +17,7 @@ import '../../../global.css';
 const DATA_TAB = 'data';
 const TA_TAB = 'ta';
 const OPEN_DEMANDS_PAGE_SIZE = 15;
+const EXECUTIVE_DRILLDOWN_PAGE_SIZE = 10;
 const MONTH_OPTIONS = [
   { value: '01', label: 'January', key: 'jan' },
   { value: '02', label: 'February', key: 'feb' },
@@ -121,6 +122,14 @@ const formatMetricLabel = (value) => METRIC_LABELS[value] || value || '-';
 
 const metricValue = (value) => Number(value ?? 0).toLocaleString('en-IN');
 const safeText = (value) => String(value ?? '').trim() || '-';
+const formatDateTime = (value) => {
+  if (!value) return '-';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return safeText(value);
+
+  return date.toLocaleDateString('en-GB');
+};
 const renderSummaryValue = (value) => {
   const numericValue = Number(value ?? 0);
   return numericValue === 0 ? '' : metricValue(numericValue);
@@ -461,6 +470,189 @@ const AnalysisTableCard = ({
   </section>
 );
 
+const MetricDrilldownModal = ({
+  open,
+  title,
+  metric,
+  rows,
+  loading,
+  errorMessage,
+  onClose,
+}) => {
+  const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    if (!open) return;
+    setSortConfig({ key: 'name', direction: 'asc' });
+    setPage(1);
+  }, [open, metric]);
+
+  const showOnboardedDate = metric === 'Profiles Onboarded' || rows.some((row) => row.onboarded_date);
+
+  const columns = useMemo(
+    () => [
+      { key: 'name', label: 'Name', sortable: true },
+      { key: 'customer_name', label: 'Customer Name', sortable: true },
+      { key: 'demand_source', label: 'Demand Source', sortable: true },
+      { key: 'employment_type', label: 'Employment Type', sortable: true },
+      ...(showOnboardedDate ? [{ key: 'onboarded_date', label: 'Onboarded Date', sortable: true }] : []),
+    ],
+    [showOnboardedDate]
+  );
+
+  const sortedRows = useMemo(() => {
+    const clonedRows = [...rows];
+    const { key, direction } = sortConfig;
+    const modifier = direction === 'asc' ? 1 : -1;
+
+    clonedRows.sort((left, right) => {
+      const leftValue = left?.[key];
+      const rightValue = right?.[key];
+
+      if (key === 'onboarded_date') {
+        const leftTime = leftValue ? new Date(leftValue).getTime() : 0;
+        const rightTime = rightValue ? new Date(rightValue).getTime() : 0;
+        return (leftTime - rightTime) * modifier;
+      }
+
+      return safeText(leftValue).localeCompare(safeText(rightValue), undefined, { sensitivity: 'base' }) * modifier;
+    });
+
+    return clonedRows;
+  }, [rows, sortConfig]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedRows.length / EXECUTIVE_DRILLDOWN_PAGE_SIZE));
+  const safeCurrentPage = Math.min(page, totalPages);
+  const startIndex = (safeCurrentPage - 1) * EXECUTIVE_DRILLDOWN_PAGE_SIZE;
+  const endIndex = Math.min(startIndex + EXECUTIVE_DRILLDOWN_PAGE_SIZE, sortedRows.length);
+  const pagedRows = sortedRows.slice(startIndex, endIndex);
+
+  const handleSort = (key) => {
+    setSortConfig((previous) => (
+      previous.key === key
+        ? { key, direction: previous.direction === 'asc' ? 'desc' : 'asc' }
+        : { key, direction: 'asc' }
+    ));
+    setPage(1);
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="executive-modal-overlay executive-modal-overlay-soft" onClick={onClose}>
+      <div
+        className="executive-modal executive-metric-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="executive-metric-drilldown-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="executive-modal-header">
+          <div>
+            <h3 id="executive-metric-drilldown-title">{title}</h3>
+            <p className="executive-modal-subtitle">Detailed records for the selected dashboard metric.</p>
+          </div>
+          <button type="button" className="executive-modal-close" onClick={onClose} aria-label="Close">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="executive-modal-body">
+          <div className="executive-drilldown-meta">
+            <span>{sortedRows.length} records</span>
+            {!loading && !errorMessage ? (
+              <span>{sortedRows.length ? `${startIndex + 1} - ${endIndex}` : '0 - 0'} shown</span>
+            ) : null}
+          </div>
+
+          <div className="executive-report-table-wrap">
+            <table className="executive-report-table executive-drilldown-table">
+              <thead>
+                <tr>
+                  {columns.map((column) => (
+                    <th key={column.key}>
+                      <button
+                        type="button"
+                        className={`executive-sort-button ${sortConfig.key === column.key ? 'active' : ''}`}
+                        onClick={() => handleSort(column.key)}
+                      >
+                        <span>{column.label}</span>
+                        <span className="executive-sort-indicator">
+                          {sortConfig.key === column.key ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '↕'}
+                        </span>
+                      </button>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td className="executive-report-empty" colSpan={columns.length}>
+                      <Loader inline message="Loading metric details..." />
+                    </td>
+                  </tr>
+                ) : errorMessage ? (
+                  <tr>
+                    <td className="executive-report-empty executive-report-error" colSpan={columns.length}>
+                      {errorMessage}
+                    </td>
+                  </tr>
+                ) : pagedRows.length === 0 ? (
+                  <tr>
+                    <td className="executive-report-empty" colSpan={columns.length}>
+                      No detail records available for this metric.
+                    </td>
+                  </tr>
+                ) : (
+                  pagedRows.map((row, index) => (
+                    <tr key={`${row.name}-${row.customer_name}-${index}`}>
+                      <td>{safeText(row.name)}</td>
+                      <td>{safeText(row.customer_name)}</td>
+                      <td>{safeText(row.demand_source)}</td>
+                      <td>{safeText(row.employment_type)}</td>
+                      {showOnboardedDate ? <td>{formatDateTime(row.onboarded_date)}</td> : null}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {!loading && !errorMessage && sortedRows.length > EXECUTIVE_DRILLDOWN_PAGE_SIZE ? (
+            <div className="executive-modal-pagination">
+              <span className="executive-open-demand-pagination-text">
+                Page {safeCurrentPage} of {totalPages}
+              </span>
+              <div className="executive-open-demand-pagination-actions">
+                <button
+                  type="button"
+                  className="executive-open-demand-page-button"
+                  onClick={() => setPage((previous) => Math.max(1, previous - 1))}
+                  disabled={safeCurrentPage === 1}
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <button
+                  type="button"
+                  className="executive-open-demand-page-button"
+                  onClick={() => setPage((previous) => Math.min(totalPages, previous + 1))}
+                  disabled={safeCurrentPage === totalPages}
+                  aria-label="Next page"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const DemandAgeingDetailsModal = ({
   open,
   title,
@@ -559,6 +751,12 @@ const ExecutiveDashboardPage = () => {
   const [ageingDetailRows, setAgeingDetailRows] = useState([]);
   const [ageingDetailsLoading, setAgeingDetailsLoading] = useState(false);
   const [ageingDetailsError, setAgeingDetailsError] = useState('');
+  const [metricDrilldownOpen, setMetricDrilldownOpen] = useState(false);
+  const [metricDrilldownTitle, setMetricDrilldownTitle] = useState('');
+  const [selectedMetric, setSelectedMetric] = useState('');
+  const [metricDrilldownRows, setMetricDrilldownRows] = useState([]);
+  const [metricDrilldownLoading, setMetricDrilldownLoading] = useState(false);
+  const [metricDrilldownError, setMetricDrilldownError] = useState('');
 
   const fallbackYearOptions = useMemo(buildYearOptions, []);
   const yearOptions = topYearOptions.length ? topYearOptions : fallbackYearOptions;
@@ -593,12 +791,20 @@ const ExecutiveDashboardPage = () => {
 
     let cancelled = false;
 
-    const loadSummarySection = async () => {
+    const loadDataSection = async () => {
       try {
-        setSectionLoading((previous) => ({ ...previous, summary: true }));
-        setSectionErrors((previous) => ({ ...previous, summary: '' }));
+        setSectionLoading((previous) => ({
+          ...previous,
+          summary: true,
+          openDemands: true,
+        }));
+        setSectionErrors((previous) => ({
+          ...previous,
+          summary: '',
+          openDemands: '',
+        }));
 
-        const data = await getExecutiveDashboardSummaryData(filters);
+        const data = await getExecutiveDashboardData(filters);
         if (cancelled) return;
 
         setDashboardData((previous) => ({
@@ -607,40 +813,24 @@ const ExecutiveDashboardPage = () => {
         }));
       } catch (fetchError) {
         if (cancelled) return;
-        console.error('Executive dashboard summary load error:', fetchError);
-        setSectionErrors((previous) => ({ ...previous, summary: 'Failed to load summary data.' }));
-      } finally {
-        if (!cancelled) {
-          setSectionLoading((previous) => ({ ...previous, summary: false }));
-        }
-      }
-    };
-
-    const loadOpenDemandSection = async () => {
-      try {
-        setSectionLoading((previous) => ({ ...previous, openDemands: true }));
-        setSectionErrors((previous) => ({ ...previous, openDemands: '' }));
-
-        const data = await getExecutiveDashboardOpenDemandsData(filters);
-        if (cancelled) return;
-
-        setDashboardData((previous) => ({
+        console.error('Executive dashboard data load error:', fetchError);
+        setSectionErrors((previous) => ({
           ...previous,
-          ...data,
+          summary: 'Failed to load dashboard data.',
+          openDemands: 'Failed to load dashboard data.',
         }));
-      } catch (fetchError) {
-        if (cancelled) return;
-        console.error('Executive dashboard open demands load error:', fetchError);
-        setSectionErrors((previous) => ({ ...previous, openDemands: 'Failed to load open demand data.' }));
       } finally {
         if (!cancelled) {
-          setSectionLoading((previous) => ({ ...previous, openDemands: false }));
+          setSectionLoading((previous) => ({
+            ...previous,
+            summary: false,
+            openDemands: false,
+          }));
         }
       }
     };
 
-    loadSummarySection();
-    loadOpenDemandSection();
+    loadDataSection();
 
     return () => {
       cancelled = true;
@@ -798,11 +988,46 @@ const ExecutiveDashboardPage = () => {
     setAgeingDetailsLoading(false);
   };
 
+  const handleOpenMetricDrilldown = async (metric, viewType, value) => {
+    if (Number(value ?? 0) === 0) return;
+
+    setMetricDrilldownOpen(true);
+    setMetricDrilldownTitle(`${metric} - ${viewType}`);
+    setSelectedMetric(metric);
+    setMetricDrilldownRows([]);
+    setMetricDrilldownError('');
+    setMetricDrilldownLoading(true);
+
+    try {
+      const rows = await getExecutiveDashboardMetricDrilldown(filters, {
+        metric,
+        viewType,
+      });
+      setMetricDrilldownRows(rows);
+    } catch (fetchError) {
+      console.error('Executive dashboard metric drilldown load error:', fetchError);
+      setMetricDrilldownError('Failed to load metric details.');
+      setMetricDrilldownRows([]);
+    } finally {
+      setMetricDrilldownLoading(false);
+    }
+  };
+
+  const handleCloseMetricDrilldown = () => {
+    setMetricDrilldownOpen(false);
+    setMetricDrilldownTitle('');
+    setSelectedMetric('');
+    setMetricDrilldownRows([]);
+    setMetricDrilldownError('');
+    setMetricDrilldownLoading(false);
+  };
+
   const overallRows = useMemo(
     () =>
       dashboardData.overallMetrics.map((item) => ({
         metric: formatMetricLabel(item.metric),
         value: item.value,
+        viewType: 'OVERALL',
       })),
     [dashboardData.overallMetrics]
   );
@@ -812,6 +1037,7 @@ const ExecutiveDashboardPage = () => {
       dashboardData.currentMonthMetrics.map((item) => ({
         metric: formatMetricLabel(item.metric),
         value: item.value,
+        viewType: 'MONTH',
       })),
     [dashboardData.currentMonthMetrics]
   );
@@ -821,6 +1047,7 @@ const ExecutiveDashboardPage = () => {
       dashboardData.currentWeekMetrics.map((item) => ({
         metric: formatMetricLabel(item.metric),
         value: item.value,
+        viewType: 'WEEK',
       })),
     [dashboardData.currentWeekMetrics]
   );
@@ -1062,7 +1289,23 @@ const ExecutiveDashboardPage = () => {
 
   const metricColumns = [
     { key: 'metric', label: 'Metric' },
-    { key: 'value', label: 'Value', render: (value) => metricValue(value) },
+    {
+      key: 'value',
+      label: 'Value',
+      render: (value, row) => (
+        Number(value ?? 0) > 0 ? (
+          <button
+            type="button"
+            className="executive-metric-button"
+            onClick={() => handleOpenMetricDrilldown(row.metric, row.viewType, value)}
+          >
+            {metricValue(value)}
+          </button>
+        ) : (
+          <span className="executive-metric-button disabled">{metricValue(value)}</span>
+        )
+      ),
+    },
   ];
 
   const ageingColumns = [
@@ -1856,6 +2099,25 @@ const ExecutiveDashboardPage = () => {
         .executive-report-error {
           color: #b91c1c;
         }
+        .executive-metric-button {
+          border: none;
+          background: transparent;
+          padding: 0;
+          color: #2563eb;
+          font: inherit;
+          font-weight: 700;
+          cursor: pointer;
+          text-decoration: underline;
+          text-underline-offset: 2px;
+        }
+        .executive-metric-button:hover {
+          color: #1d4ed8;
+        }
+        .executive-metric-button.disabled {
+          color: #94a3b8;
+          text-decoration: none;
+          cursor: not-allowed;
+        }
         .executive-link-button {
           border: none;
           background: transparent;
@@ -1878,6 +2140,9 @@ const ExecutiveDashboardPage = () => {
           justify-content: center;
           padding: 24px;
         }
+        .executive-modal-overlay-soft {
+          animation: executiveFadeIn 0.2s ease;
+        }
         .executive-modal {
           width: min(760px, calc(100vw - 32px));
           max-height: min(80vh, 760px);
@@ -1887,6 +2152,10 @@ const ExecutiveDashboardPage = () => {
           border-radius: 20px;
           box-shadow: 0 24px 60px rgba(15, 23, 42, 0.2);
           overflow: hidden;
+        }
+        .executive-metric-modal {
+          width: min(1080px, calc(100vw - 32px));
+          animation: executiveModalIn 0.22s ease;
         }
         .executive-modal-header {
           display: flex;
@@ -1900,6 +2169,11 @@ const ExecutiveDashboardPage = () => {
           margin: 0;
           font-size: 18px;
           color: #0f172a;
+        }
+        .executive-modal-subtitle {
+          margin: 4px 0 0;
+          font-size: 13px;
+          color: #64748b;
         }
         .executive-modal-close {
           width: 36px;
@@ -1916,6 +2190,66 @@ const ExecutiveDashboardPage = () => {
         .executive-modal-body {
           padding: 18px 20px 20px;
           overflow: auto;
+        }
+        .executive-drilldown-meta {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 14px;
+          color: #64748b;
+          font-size: 13px;
+          font-weight: 600;
+        }
+        .executive-drilldown-table th,
+        .executive-drilldown-table td {
+          white-space: nowrap;
+        }
+        .executive-drilldown-table th:last-child,
+        .executive-drilldown-table td:last-child {
+          text-align: left;
+        }
+        .executive-sort-button {
+          width: 100%;
+          display: inline-flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          border: none;
+          background: transparent;
+          padding: 0;
+          color: inherit;
+          font: inherit;
+          font-weight: inherit;
+          cursor: pointer;
+        }
+        .executive-sort-button.active {
+          color: #2563eb;
+        }
+        .executive-sort-indicator {
+          flex-shrink: 0;
+          font-size: 11px;
+        }
+        .executive-modal-pagination {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 12px;
+          margin-top: 16px;
+        }
+        @keyframes executiveFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes executiveModalIn {
+          from {
+            opacity: 0;
+            transform: translateY(12px) scale(0.98);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
         }
         .executive-dashboard-state {
           padding: 40px 24px;
@@ -1985,6 +2319,16 @@ const ExecutiveDashboardPage = () => {
           }
         }
       `}</style>
+
+      <MetricDrilldownModal
+        open={metricDrilldownOpen}
+        title={metricDrilldownTitle}
+        metric={selectedMetric}
+        rows={metricDrilldownRows}
+        loading={metricDrilldownLoading}
+        errorMessage={metricDrilldownError}
+        onClose={handleCloseMetricDrilldown}
+      />
 
       <DemandAgeingDetailsModal
         open={ageingDetailsOpen}
