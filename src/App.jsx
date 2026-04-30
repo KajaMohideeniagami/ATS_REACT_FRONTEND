@@ -10,7 +10,6 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
-  Merge,
   UserSearch,
   Users,
 } from 'lucide-react';
@@ -32,9 +31,8 @@ import CandidateReportPage from './components/pages/CandidateReport/CandidateRep
 import VendorMasterPage from './components/pages/VendorMaster/VendorMasterPage';
 import { LoaderProvider } from './context/LoaderContext';
 import UserProfilePage from './components/pages/UserProfile/UserProfilePage';
-import CandidateDatabasePage from './components/pages/CandidateDatabase/CandidateDatabasePage';
 import CandidateDetailPage from './components/pages/CandidateDatabase/CandidateDetailPage';
-import ProfileMergePage from './components/pages/ProfileMerge/ProfileMergePage';
+import CandidateDatabasePage from './components/pages/CandidateDatabase/CandidateDatabasePage';
 import './global.css';
 
 const APP_TITLE_SUFFIX = 'iAgami ATS';
@@ -53,7 +51,7 @@ const resolvePageTitle = (pathname) => {
   if (/^\/customers\/[^/]+$/.test(pathname)) return formatPageTitle('Customer Management');
   if (pathname === '/candidate-database') return formatPageTitle('Candidate Database');
   if (/^\/candidate-database\/[^/]+$/.test(pathname)) return formatPageTitle('Candidate');
-  if (pathname === '/profile-merge') return formatPageTitle('Profile Merge & Upload');
+  if (pathname === '/profile-merge') return formatPageTitle('Candidate Database');
   if (pathname === '/profile-report') return formatPageTitle('Profile Report');
   if (pathname === '/demand-report') return formatPageTitle('Demand Report');
   if (pathname === '/vendor-report') return formatPageTitle('Vendor Report');
@@ -80,7 +78,6 @@ const NAV_ITEMS = [
   { label: 'Executive Dashboard', icon: BarChart3, path: '/executive-dashboard' },
   { label: 'Customer', icon: Users, path: '/' },
   { label: 'Candidate Database', icon: UserSearch, path: '/candidate-database' },
-  { label: 'Profile Merge', icon: Merge, path: '/profile-merge' },
   { label: 'Profile Report', icon: UserSearch, path: '/profile-report' },
   { label: 'Demand Report Data', icon: BriefcaseBusiness, path: '/demand-report' },
   { label: 'Vendor Report Data', icon: BriefcaseBusiness, path: '/vendor-report' },
@@ -405,9 +402,7 @@ const App = () => {
             path="/profile-merge"
             element={
               <ProtectedRoute>
-                <AppShell>
-                  <ProfileMergePage />
-                </AppShell>
+                <Navigate to="/candidate-database" replace />
               </ProtectedRoute>
             }
           />

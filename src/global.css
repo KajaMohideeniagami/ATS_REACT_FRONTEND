@@ -2944,6 +2944,7 @@ svg {
 }
 
 
+.candidate-workspace-page,
 .candidate-database-page,
 .candidate-detail-page {
   min-height: 100%;
@@ -2957,6 +2958,43 @@ svg {
 .candidate-detail-shell {
   max-width: 1440px;
   margin: 0 auto;
+}
+
+.candidate-workspace-shell {
+  max-width: 1720px;
+  margin: 0 auto;
+  display: grid;
+  gap: 22px;
+}
+
+.candidate-workspace-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.candidate-workspace-section {
+  display: grid;
+  gap: 12px;
+}
+
+.candidate-workspace-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-primary-strong);
+}
+
+.candidate-database-page-embedded,
+.profile-merge-page-embedded {
+  min-height: auto;
+  padding: 0;
+  background: transparent;
+}
+
+.candidate-database-shell-embedded,
+.profile-merge-shell-embedded {
+  max-width: none;
 }
 
 .candidate-database-shell-wide {
@@ -3363,6 +3401,55 @@ svg {
   color: var(--color-text-muted);
   font-size: 13px;
   font-weight: 500;
+}
+
+.candidate-database-tabs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.candidate-database-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--color-text-soft);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.candidate-database-tab:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary-strong);
+}
+
+.candidate-database-tab.active {
+  background: rgba(47, 128, 200, 0.12);
+  border-color: rgba(47, 128, 200, 0.35);
+  color: var(--color-primary-strong);
+}
+
+.candidate-database-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(47, 128, 200, 0.1);
+  color: inherit;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .candidate-database-grid {

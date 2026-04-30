@@ -127,7 +127,7 @@ const MergeModal = ({
   );
 };
 
-const ProfileMergePage = () => {
+const ProfileMergePage = ({ embedded = false }) => {
   const fileInputRef = useRef(null);
   const [rows, setRows] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -374,21 +374,23 @@ const ProfileMergePage = () => {
   };
 
   return (
-    <div className="profile-merge-page">
-      <div className="profile-merge-shell">
-        <div className="profile-merge-header">
-          <div>
-            <div className="demand-report-kicker">Operations</div>
-            <h1 className="ats-heading-1">Profile Merge & Upload</h1>
-            <p className="ats-body-small">
-              Upload external profiles to OCI, review ATS and uploaded profiles together, and merge them into demands.
-            </p>
-          </div>
+    <div className={`profile-merge-page${embedded ? ' profile-merge-page-embedded' : ''}`}>
+      <div className={`profile-merge-shell${embedded ? ' profile-merge-shell-embedded' : ''}`}>
+        {!embedded ? (
+          <div className="profile-merge-header">
+            <div>
+              <div className="demand-report-kicker">Operations</div>
+              <h1 className="ats-heading-1">Profile Merge & Upload</h1>
+              <p className="ats-body-small">
+                Upload external profiles to OCI, review ATS and uploaded profiles together, and merge them into demands.
+              </p>
+            </div>
 
-          <div className="profile-merge-summary">
-            <span>{filteredRows.length} profiles</span>
+            <div className="profile-merge-summary">
+              <span>{filteredRows.length} profiles</span>
+            </div>
           </div>
-        </div>
+        ) : null}
 
         <div className="profile-merge-panel">
           <div className="profile-merge-toolbar">

@@ -81,6 +81,13 @@ const normalizeUploadedProfile = (row) => ({
   raw: row,
 });
 
+const getMergeListData = async () => {
+  const response = await api.get(API_ENDPOINTS.PROFILE_MERGE_LIST);
+  return typeof response.data === 'string'
+    ? JSON.parse(response.data)
+    : (response.data || {});
+};
+
 export const uploadProfileToMergeBucket = async (payload) => {
   const response = await api.post(API_ENDPOINTS.PROFILE_MERGE_UPLOAD, payload);
   return response.data;
@@ -122,15 +129,13 @@ export const getProfileMergeDemands = async (customerId) => {
 
 export const getProfileMergeRows = async () => {
   const [mergeResponse, atsRows] = await Promise.allSettled([
-    api.get(API_ENDPOINTS.PROFILE_MERGE_LIST),
+    getMergeListData(),
     getCandidateDatabaseRows(),
   ]);
 
   const mergeData =
     mergeResponse.status === 'fulfilled'
-      ? (typeof mergeResponse.value.data === 'string'
-          ? JSON.parse(mergeResponse.value.data)
-          : mergeResponse.value.data) || {}
+      ? (mergeResponse.value || {})
       : {};
 
   const atsProfilesFromApi = Array.isArray(mergeData?.ats_profiles)
@@ -162,6 +167,26 @@ export const getProfileMergeRows = async () => {
     const rightTime = new Date(right.upload_date || 0).getTime();
     return rightTime - leftTime;
   });
+};
+
+export const getUploadedProfileMergeRows = async () => {
+  const mergeData = await getMergeListData();
+
+  const uploadedProfiles = Array.isArray(mergeData?.uploaded_profiles)
+    ? mergeData.uploaded_profiles
+    : Array.isArray(mergeData?.UPLOADED_PROFILES)
+      ? mergeData.UPLOADED_PROFILES
+      : Array.isArray(mergeData?.items)
+        ? mergeData.items
+        : [];
+
+  return uploadedProfiles
+    .map(normalizeUploadedProfile)
+    .sort((left, right) => {
+      const leftTime = new Date(left.upload_date || 0).getTime();
+      const rightTime = new Date(right.upload_date || 0).getTime();
+      return rightTime - leftTime;
+    });
 };
 
 export const mergeProfileToDemand = async (payload) => {
