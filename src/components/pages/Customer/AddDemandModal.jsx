@@ -189,7 +189,7 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
     loadLovs();
     // Pre-load pdf.js so it's ready when needed
     loadPdfJs().catch(() => {});
-  }, [isOpen]);
+  }, [isOpen, handleClose]);
 
   // ── Escape key ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -215,7 +215,7 @@ const AddDemandModal = ({ isOpen, onClose, onSuccess, customerId }) => {
     if (!isC2CW2 && formData.LOCATION_TYPE === 'Onsite') {
       setFormData(prev => ({ ...prev, DEMAND_TYPE: '' }));
     }
-  }, [formData.LOCATION_TYPE]);
+  }, [formData.LOCATION_TYPE, formData.DEMAND_TYPE, jobTypes]);
 
   const resetForm = () => {
     setFormData(initialForm);

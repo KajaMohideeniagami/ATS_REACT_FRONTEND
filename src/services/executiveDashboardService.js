@@ -278,16 +278,14 @@ export const getExecutiveDashboardYears = async () => {
 };
 
 export const getExecutiveDashboardData = async (filters = {}) => {
-  const [summaryData, openDemandsData, analysisData] = await Promise.all([
+  const [summaryData, openDemandsData] = await Promise.all([
     getExecutiveDashboardSummaryData(filters),
     getExecutiveDashboardOpenDemandsData(filters),
-    getExecutiveDashboardAnalysisData(filters),
   ]);
 
   return {
     ...summaryData,
     ...openDemandsData,
-    ...analysisData,
     taPerformanceReport: [],
     taScoreReport: [],
   };

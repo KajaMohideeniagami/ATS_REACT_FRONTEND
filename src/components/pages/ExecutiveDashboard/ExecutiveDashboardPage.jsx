@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Filter, RefreshCw, X } from 'lucide-react';
 import Loader from '../../common/Loader';
 import { toast } from '../../toast/index';
@@ -46,11 +46,6 @@ const QUARTER_OPTIONS = [
   { value: '3', label: 'Q3', key: 'q3' },
   { value: '4', label: 'Q4', key: 'q4' },
 ];
-
-const buildSingleYearOption = (yearValue) => [{
-  value: String(yearValue || new Date().getFullYear()),
-  label: String(yearValue || new Date().getFullYear()),
-}];
 
 const EMPTY_EXECUTIVE_DATA = {
   overallMetrics: [],
@@ -757,6 +752,7 @@ const ExecutiveDashboardPage = () => {
   const [metricDrilldownRows, setMetricDrilldownRows] = useState([]);
   const [metricDrilldownLoading, setMetricDrilldownLoading] = useState(false);
   const [metricDrilldownError, setMetricDrilldownError] = useState('');
+  const lastAnalysisRequestRef = useRef('');
 
   const fallbackYearOptions = useMemo(buildYearOptions, []);
   const yearOptions = topYearOptions.length ? topYearOptions : fallbackYearOptions;
@@ -841,6 +837,25 @@ const ExecutiveDashboardPage = () => {
     if (activeTab !== DATA_TAB) return undefined;
 
     let cancelled = false;
+    const selectedMonthYear = analysisFilters.monthYears[0] || '';
+    const selectedWeekYear = analysisFilters.weekYears[0] || '';
+    const selectedWeekMonth = analysisFilters.weekMonths[0] || '';
+    const selectedQuarterYear = analysisFilters.quarterYears[0] || '';
+    const requestSignature = [
+      activeTab,
+      filters.customer,
+      filters.demandType,
+      filters.year,
+      selectedMonthYear,
+      selectedWeekYear,
+      selectedWeekMonth,
+      selectedQuarterYear,
+    ].join('|');
+
+    if (lastAnalysisRequestRef.current === requestSignature) {
+      return undefined;
+    }
+    lastAnalysisRequestRef.current = requestSignature;
 
     const loadAnalysisSection = async () => {
       try {
@@ -850,10 +865,10 @@ const ExecutiveDashboardPage = () => {
         const data = await getExecutiveDashboardAnalysisData({
           ...filters,
           // Keep existing API contract (single value); use first selected.
-          analysisMonthYear: analysisFilters.monthYears[0],
-          analysisWeekYear: analysisFilters.weekYears[0],
-          analysisWeekMonth: analysisFilters.weekMonths[0],
-          analysisQuarterYear: analysisFilters.quarterYears[0],
+          analysisMonthYear: selectedMonthYear,
+          analysisWeekYear: selectedWeekYear,
+          analysisWeekMonth: selectedWeekMonth,
+          analysisQuarterYear: selectedQuarterYear,
         });
 
         if (cancelled) return;
@@ -883,10 +898,10 @@ const ExecutiveDashboardPage = () => {
     filters.customer,
     filters.demandType,
     filters.year,
-    analysisFilters.monthYears,
-    analysisFilters.weekYears,
-    analysisFilters.weekMonths,
-    analysisFilters.quarterYears,
+    analysisFilters.monthYears[0],
+    analysisFilters.weekYears[0],
+    analysisFilters.weekMonths[0],
+    analysisFilters.quarterYears[0],
   ]);
 
   useEffect(() => {
@@ -1274,18 +1289,6 @@ const ExecutiveDashboardPage = () => {
     ),
     [analysisFilters.compareQuarters, availableQuarterOptions]
   );
-
-  const summaryPills = useMemo(() => {
-    const totalDemands = dashboardData.overallMetrics.find((item) => item.metric === 'Total Demands')?.value ?? 0;
-    const openDemands = dashboardData.overallMetrics.find((item) => item.metric === 'Open Demands')?.value ?? 0;
-    const onboarded = dashboardData.overallMetrics.find((item) => item.metric === 'Profiles Onboarded')?.value ?? 0;
-
-    return [
-      { label: 'Total Demands', value: totalDemands },
-      { label: 'Open Demands', value: openDemands },
-      { label: 'Profiles Onboarded', value: onboarded },
-    ];
-  }, [dashboardData.overallMetrics]);
 
   const metricColumns = [
     { key: 'metric', label: 'Metric' },

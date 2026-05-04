@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { X } from "lucide-react";
 import Loader from "../../common/Loader";
 import { getProfileView } from "../../../services/profileViewService";
@@ -7,6 +7,15 @@ import { API_BASE_URL, LOV_ENDPOINTS } from "../../../config/apiConfig";
 import { attachGlobalLoaderInterceptors } from "../../../services/httpLoader";
 
 const EMPTY_CELL = "-";
+const lovApi = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 15000,
+  headers: {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+  },
+});
+attachGlobalLoaderInterceptors(lovApi);
 
 const displayText = (value, fallback = EMPTY_CELL) => {
   if (value === 0 || value === "0") return "0";
@@ -35,24 +44,14 @@ const ViewProfileModal = ({ isOpen, onClose, profileId }) => {
   const [availabilityOptions, setAvailabilityOptions] = useState([]);
   const [currencies, setCurrencies] = useState([]);
 
-  const api = axios.create({
-    baseURL: API_BASE_URL,
-    timeout: 15000,
-    headers: {
-      "Content-Type": "application/json",
-      "Accept": "application/json",
-    },
-  });
-  attachGlobalLoaderInterceptors(api);
-
-  const getLovData = async (path) => {
+  const getLovData = useCallback(async (path) => {
     try {
-      const res = await api.get(path);
+      const res = await lovApi.get(path);
       return res.data.items || [];
     } catch {
       return [];
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!isOpen || !profileId) return;
@@ -85,7 +84,7 @@ const ViewProfileModal = ({ isOpen, onClose, profileId }) => {
     };
 
     loadProfile();
-  }, [isOpen, profileId]);
+  }, [getLovData, isOpen, profileId]);
 
   if (!isOpen) return null;
 

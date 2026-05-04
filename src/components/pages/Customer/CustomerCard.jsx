@@ -17,14 +17,6 @@ const CustomerCard = ({ customer, onCardClick }) => {
     { label: 'Billing Loss', value: customer.billing_loss || 0, wide: true },
   ];
 
-  const handleOpen = (event) => {
-    event.stopPropagation();
-    if (onCardClick) onCardClick(customer);
-    navigate(`/customers/${customer.customer_id}`, {
-      state: { customer },
-    });
-  };
-
   const handleClick = () => {
     if (onCardClick) onCardClick(customer);
     navigate(`/customers/${customer.customer_id}`, {

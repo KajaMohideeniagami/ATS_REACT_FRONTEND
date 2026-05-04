@@ -31,7 +31,7 @@ const AddContactModal = ({ isOpen, onClose, onSuccess, customerId, editContact =
     const handleKey = (e) => { if (e.key === 'Escape') handleClose(); };
     if (isOpen) document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
-  }, [isOpen]);
+  }, [isOpen, handleClose]);
 
   // Lock background scroll
   useEffect(() => {

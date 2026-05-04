@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { getCustomerDetails } from "../../../services/customerDetailService";
 import { getDemandDownloadUrl } from "../../../services/demandService";
@@ -9,7 +9,6 @@ import {
   UserPlus, Briefcase, User, Activity, Mail,
   ChevronDown, Trash2
 } from "lucide-react";
-import Loader from "../../common/Loader";
 import "../../../global.css";
 import AddContactModal from './AddContactModal';
 import AddDemandModal from './AddDemandModal';
@@ -122,7 +121,7 @@ const CustomerDetail = () => {
   const [profilesPage, setProfilesPage] = useState(1);
   const [emailsPage,   setEmailsPage]   = useState(1);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -133,9 +132,9 @@ const CustomerDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  useEffect(() => { loadData(); }, [id]);
+  useEffect(() => { loadData(); }, [loadData]);
 
   useEffect(() => {
     setDemandsPage(1);
