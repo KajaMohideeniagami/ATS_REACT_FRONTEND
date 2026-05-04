@@ -46,7 +46,10 @@ const LoginPage = () => {
           username: response.username,
           full_name: response.full_name,
           email: response.email,
-          token: response.token,
+          token: response.token || response.access_token,
+          access_token: response.access_token,
+          token_type: response.token_type,
+          expires_in: response.expires_in,
           must_change_password: Boolean(
             response.must_change_password ?? response.change_password_on_first_use
           ),

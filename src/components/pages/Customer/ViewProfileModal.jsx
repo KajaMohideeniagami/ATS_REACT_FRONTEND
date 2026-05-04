@@ -4,6 +4,7 @@ import Loader from "../../common/Loader";
 import { getProfileView } from "../../../services/profileViewService";
 import axios from "axios";
 import { API_BASE_URL, LOV_ENDPOINTS } from "../../../config/apiConfig";
+import { attachGlobalLoaderInterceptors } from "../../../services/httpLoader";
 
 const EMPTY_CELL = "-";
 
@@ -42,6 +43,7 @@ const ViewProfileModal = ({ isOpen, onClose, profileId }) => {
       "Accept": "application/json",
     },
   });
+  attachGlobalLoaderInterceptors(api);
 
   const getLovData = async (path) => {
     try {

@@ -14,6 +14,27 @@ attachGlobalLoaderInterceptors(api);
 
 export const login = async (username, password) => {
   try {
+    const clientId = process.env.REACT_APP_ORDS_CLIENT_ID;
+    const clientSecret = process.env.REACT_APP_ORDS_CLIENT_SECRET;
+    const useOAuthTokenEndpoint = process.env.REACT_APP_USE_ORDS_OAUTH === 'true';
+
+    if (useOAuthTokenEndpoint) {
+      const body = new URLSearchParams();
+      body.append('grant_type', 'password');
+      body.append('username', username);
+      body.append('password', password);
+
+      const basicAuth = btoa(`${clientId || ''}:${clientSecret || ''}`);
+
+      const response = await api.post('/oauth/token', body.toString(), {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Authorization: `Basic ${basicAuth}`,
+        },
+      });
+      return response.data;
+    }
+
     const response = await api.post(API_ENDPOINTS.LOGIN, { username, password });
     return response.data;
   } catch (error) {
@@ -23,7 +44,12 @@ export const login = async (username, password) => {
 };
 
 export const saveSession = (userData) => {
-  sessionStorage.setItem('ats_user', JSON.stringify(userData));
+  const normalizedUserData = {
+    ...userData,
+    token: userData?.token || userData?.access_token || '',
+    token_type: userData?.token_type || 'bearer',
+  };
+  sessionStorage.setItem('ats_user', JSON.stringify(normalizedUserData));
 };
 
 export const getSession = () => {

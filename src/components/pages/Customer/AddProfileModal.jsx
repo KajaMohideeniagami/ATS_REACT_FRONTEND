@@ -12,6 +12,7 @@ import { validateRequiredFields } from "../../../utils/formValidation";
 import mammoth from "mammoth";
 import { useLoader } from "../../../context/LoaderContext";
 import { getCurrentAuditUser } from "../../../services/authService";
+import { attachGlobalLoaderInterceptors } from "../../../services/httpLoader";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -21,6 +22,7 @@ const api = axios.create({
     'Accept': 'application/json',
   },
 });
+attachGlobalLoaderInterceptors(api);
 
 const getLovData = async (path) => {
   try {

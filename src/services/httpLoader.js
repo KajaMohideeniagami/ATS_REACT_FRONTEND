@@ -25,6 +25,20 @@ export const attachGlobalLoaderInterceptors = (client) => {
 
   const requestInterceptor = client.interceptors.request.use(
     (config) => {
+      const session = sessionStorage.getItem('ats_user');
+      if (session) {
+        try {
+          const user = JSON.parse(session);
+          const token = user?.token || user?.access_token;
+          if (token) {
+            config.headers = config.headers || {};
+            config.headers.Authorization = `Bearer ${token}`;
+          }
+        } catch {
+          // Ignore malformed session and continue request without auth header.
+        }
+      }
+
       if (!config?.skipGlobalLoader) {
         showGlobalHttpLoader({
           message: config?.loaderMessage || 'Loading...',

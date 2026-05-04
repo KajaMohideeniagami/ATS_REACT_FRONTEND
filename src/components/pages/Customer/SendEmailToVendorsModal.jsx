@@ -5,6 +5,7 @@ import { toast } from "../../toast/index";
 import { API_BASE_URL, LOV_ENDPOINTS } from "../../../config/apiConfig";
 import { getDemandDetails } from "../../../services/demandService";
 import { sendVendorEmail } from "../../../services/vendorEmailService";
+import { attachGlobalLoaderInterceptors } from "../../../services/httpLoader";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -14,6 +15,7 @@ const api = axios.create({
     Accept: "application/json",
   },
 });
+attachGlobalLoaderInterceptors(api);
 
 const getLovData = async (path) => {
   try {
